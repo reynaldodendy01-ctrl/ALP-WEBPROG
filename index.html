@@ -1,117 +1,69 @@
 <!DOCTYPE html>
-<html class="light" lang="id" style="">
+<html class="light" lang="id">
 
 <head>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>CariGalon - Langkah Cerdas Menuju Hidup Bebas Hutang</title>
+
+    <title>CariGalon - Pantau & Kelola Air Kampus UC</title>
+
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
-        rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet">
-    <script id="tailwind-config">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
-                    "colors": {
-                        "surface-container-highest": "#e0e3e5",
-                        "surface-dim": "#d8dadc",
-                        "on-primary-fixed-variant": "#004493",
-                        "on-tertiary-fixed-variant": "#3f465c",
-                        "primary": "#0058bc",
-                        "on-secondary": "#ffffff",
-                        "on-secondary-container": "#566771",
-                        "on-primary-fixed": "#001a41",
-                        "tertiary-fixed": "#dae2fd",
-                        "on-error": "#ffffff",
-                        "inverse-on-surface": "#eff1f3",
-                        "secondary-fixed": "#d3e5f1",
-                        "inverse-primary": "#adc6ff",
-                        "background": "#f7f9fb",
-                        "error-container": "#ffdad6",
-                        "on-tertiary-container": "#fefcff",
-                        "inverse-surface": "#2d3133",
-                        "surface-bright": "#f7f9fb",
-                        "tertiary-container": "#6c748b",
-                        "tertiary": "#545c72",
-                        "on-surface": "#191c1e",
-                        "primary-fixed-dim": "#adc6ff",
-                        "surface-container-high": "#e6e8ea",
-                        "on-primary": "#ffffff",
-                        "primary-fixed": "#d8e2ff",
-                        "on-tertiary-fixed": "#131b2e",
-                        "on-background": "#191c1e",
-                        "outline": "#717786",
-                        "surface-container-low": "#f2f4f6",
-                        "surface": "#f7f9fb",
-                        "outline-variant": "#c1c6d7",
-                        "on-error-container": "#93000a",
-                        "secondary-container": "#d3e5f1",
-                        "surface-variant": "#e0e3e5",
-                        "surface-container": "#eceef0",
-                        "on-secondary-fixed": "#0c1e26",
+                    colors: {
+                        primary: "#0058bc",
+                        background: "#f7f9fb",
+                        surface: "#f7f9fb",
                         "surface-container-lowest": "#ffffff",
-                        "on-primary-container": "#fefcff",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-container": "#eceef0",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-variant": "#e0e3e5",
+                        secondary: "#50616b",
+                        tertiary: "#545c72",
+                        outline: "#717786",
+                        "outline-variant": "#c1c6d7",
+                        "on-surface": "#191c1e",
                         "on-surface-variant": "#414755",
-                        "on-secondary-fixed-variant": "#384953",
-                        "on-tertiary": "#ffffff",
-                        "secondary-fixed-dim": "#b7c9d5",
-                        "tertiary-fixed-dim": "#bec6e0",
-                        "error": "#ba1a1a",
-                        "secondary": "#50616b",
-                        "surface-tint": "#005bc1",
-                        "primary-container": "#0070eb"
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#d3e5f1",
                     },
-                    "borderRadius": {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
+
+                    fontFamily: {
+                        inter: ["Inter", "sans-serif"]
                     },
-                    "spacing": {
-                        "margin-mobile": "20px",
-                        "base": "8px",
-                        "container-max": "1280px",
-                        "section-gap": "120px",
-                        "margin-desktop": "64px",
-                        "gutter": "24px"
-                    },
-                    "fontFamily": {
-                        "body-md": ["Inter"],
-                        "label-sm": ["Inter"],
-                        "display": ["Inter"],
-                        "headline-lg-mobile": ["Inter"],
-                        "headline-md": ["Inter"],
-                        "label-md": ["Inter"],
-                        "headline-lg": ["Inter"],
-                        "body-lg": ["Inter"]
-                    },
-                    "fontSize": {
-                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
-                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
-                        "display": ["72px", { "lineHeight": "80px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
-                        "headline-lg-mobile": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
-                        "headline-md": ["30px", { "lineHeight": "38px", "fontWeight": "600" }],
-                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500" }],
-                        "headline-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
-                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+
+                    maxWidth: {
+                        container: "1280px"
                     }
                 }
             }
         }
     </script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f7f9fb;
+            background: #f7f9fb;
+            color: #191c1e;
             -webkit-font-smoothing: antialiased;
         }
 
         .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24;
         }
 
         .ambient-shadow {
@@ -137,189 +89,529 @@
         .blend-image {
             mix-blend-mode: multiply;
         }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 1px solid #c1c6d7;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .stat-item {
+            padding: 1.75rem 1.5rem;
+            text-align: center;
+            border-right: 1px solid #e0e3e5;
+        }
+
+        .stat-item:last-child {
+            border-right: none;
+        }
+
+        .stat-num {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0058bc;
+            line-height: 1;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #414755;
+            font-weight: 500;
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 1rem;
+            margin-top: 3rem;
+        }
+
+        .bento-a {
+            grid-column: span 5;
+        }
+
+        .bento-b {
+            grid-column: span 7;
+        }
+
+        .bento-c,
+        .bento-d,
+        .bento-e {
+            grid-column: span 4;
+        }
+
+        @media (max-width: 768px) {
+
+            .bento-a,
+            .bento-b,
+            .bento-c,
+            .bento-d,
+            .bento-e {
+                grid-column: span 12;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stat-item:nth-child(2) {
+                border-right: none;
+            }
+
+            .stat-item:nth-child(3),
+            .stat-item:nth-child(4) {
+                border-top: 1px solid #e0e3e5;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-item {
+                border-right: none;
+                border-bottom: 1px solid #e0e3e5;
+            }
+
+            .stat-item:last-child {
+                border-bottom: none;
+            }
+        }
     </style>
 </head>
 
-<body class="text-on-surface">
-    <!-- TopAppBar -->
-    <header
-        class="fixed top-0 left-0 w-full z-50 bg-surface/80 backdrop-blur-md h-20 flex items-center transition-all duration-300 border-b border-transparent"
-        id="top-app-bar">
-        <div class="max-w-container-max mx-auto w-full px-margin-desktop flex justify-between items-center">
+<body>
+
+    <!-- HEADER -->
+    <header id="top-app-bar"
+        class="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-md h-20 flex items-center transition-all duration-300 border-b border-transparent">
+
+        <div class="max-w-container mx-auto w-full px-6 lg:px-16 flex justify-between items-center">
+
             <div class="flex items-center gap-12">
-                <div class="text-headline-md font-bold text-primary tracking-tighter cursor-pointer">CariGalon</div>
-                <nav class="hidden md:flex items-center gap-8"><a
-                        class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                        href="#">Profil</a>
-                    <a class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                        href="#">Notifikasi</a>
-                    <a class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                        href="#">Lokasi</a>
-                    <a class="font-label-md text-on-surface-variant hover:text-primary transition-colors" href="#">Cari
-                        Air</a>
+
+                <div class="text-3xl font-black tracking-tight text-primary cursor-pointer">
+                    CariGalon
+                </div>
+
+                <nav class="hidden md:flex items-center gap-8">
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">
+                        Fitur
+                    </a>
+
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">
+                        Cara Kerja
+                    </a>
+
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">
+                        Peta Dispenser
+                    </a>
+
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">
+                        Laporan
+                    </a>
                 </nav>
+
             </div>
+
             <div class="flex items-center gap-6">
+
+                <button class="hidden md:block text-sm text-on-surface-variant hover:text-primary transition-colors">
+                    Login
+                </button>
+
                 <button
-                    class="font-label-md text-on-surface-variant hover:text-primary transition-colors">Login</button>
-                <button
-                    class="bg-primary text-on-primary font-label-md px-6 py-2.5 rounded-full hover:shadow-lg active:scale-95 transition-all">Lihat
-                    Status</button>
+                    class="bg-primary text-white text-sm font-semibold px-6 py-3 rounded-full hover:shadow-lg active:scale-95 transition-all">
+                    Lihat Status
+                </button>
+
             </div>
+
         </div>
+
     </header>
-    <main class="pt-32 pb-section-gap">
-        <!-- Hero Section -->
-        <section
-            class="max-w-container-max mx-auto px-margin-desktop mb-section-gap text-center relative overflow-hidden">
-            <div class="relative z-10 fade-in" style="animation-delay: 0.1s;">
-                <h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight mb-6 mx-auto max-w-[800px]">
-                    Langkah cerdas menuju UC tanpa krisis air.
-                </h1>
-                <p class="font-body-lg text-body-lg text-on-surface-variant mb-12 mx-auto max-w-[600px]">
-                    Kelola jalur anda untuk mendapat air bersih di Universitas Ciputra.
-                </p>
-                <div class="flex flex-col sm:flex-row justify-center gap-4 mb-12 relative z-20">
-                    <button
-                        class="bg-primary text-on-primary font-label-md px-10 py-5 rounded-full shadow-lg hover:shadow-xl hover:translate-y-[-2px] active:scale-95 transition-all min-w-[200px]">Lihat
-                        Status Galon</button>
+
+    <!-- MAIN -->
+    <main class="pt-32 pb-32">
+
+        <!-- HERO -->
+        <section class="max-w-container mx-auto px-6 lg:px-16 mb-20 text-center relative overflow-hidden">
+
+            <div class="relative z-10 fade-in">
+
+                <!-- Badge -->
+                <div
+                    class="inline-flex items-center gap-2 bg-secondary-container text-primary border border-outline-variant/40 rounded-full px-4 py-2 text-xs mb-6 tracking-widest uppercase font-semibold">
+
+                    <span class="material-symbols-outlined text-[14px]">
+                        radio_button_checked
+                    </span>
+
+                    Live monitoring aktif — Universitas Ciputra
 
                 </div>
-                <div class="relative flex justify-center items-center h-[500px] mb-8">
-                    <!-- Centered Image Container -->
-                    <div class="absolute inset-0 flex justify-center items-center pointer-events-none fade-in"
-                        style="animation-delay: 0.3s;">
-                        <div class="relative">
-                            <img alt="Large blue water gallon"
-                                class="w-[320px] md:w-[400px] lg:w-[450px] h-auto object-contain blend-image"
-                                src="https://lh3.googleusercontent.com/aida/ADBb0ugny5pu2VdyQjiLh1MbTO8MGMNzXNB8H5vIHBuZFVWYLlOUS_yO9c0E0WEYH_Yaq7UtgAn4K2JitPeWgdT6SOxXZj93PhLO5Xht3SQ2lF4CYI7nwu4bB_sccyySg0-pwTi7o4stOjcHjerNvGPygvOYgKv3Aif-8Jv05VQVgIuwQ8vlY7Ldu2yj9ksxuS81XJWewArAEm-ED1nJrH1-q9AK8iNxyDbJZjvSW3AgAlEXNYQXESWlD8UNMwkK">
-                        </div>
-                    </div>
+
+                <!-- Heading -->
+                <h1 class="text-5xl lg:text-7xl font-black tracking-tight mb-6 mx-auto max-w-[900px] leading-tight">
+                    Kelola air kampus dari
+                    <span class="text-primary">
+                        satu dashboard
+                    </span>.
+                </h1>
+
+                <!-- Description -->
+                <p class="text-lg text-on-surface-variant mb-12 mx-auto max-w-[640px] leading-relaxed">
+                    Platform real-time untuk memantau status galon,
+                    melaporkan kerusakan dispenser,
+                    dan memastikan distribusi air merata di seluruh gedung UC.
+                </p>
+
+                <!-- Buttons -->
+                <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16">
+
+                    <button
+                        class="bg-primary text-white px-10 py-5 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 transition-all font-semibold min-w-[220px]">
+                        Cek Peta Dispenser
+                    </button>
+
+                    <button
+                        class="bg-white border border-outline-variant text-on-surface px-10 py-5 rounded-full hover:border-primary/30 hover:-translate-y-1 active:scale-95 transition-all font-semibold min-w-[220px]">
+                        Buat Laporan
+                    </button>
+
                 </div>
+
+                <!-- Hero Image -->
+                <div class="relative flex justify-center items-center h-[460px]">
+
+                    <img alt="Large blue water gallon"
+                        class="w-[320px] md:w-[420px] object-contain blend-image fade-in"
+                        src="https://lh3.googleusercontent.com/aida/ADBb0ugny5pu2VdyQjiLh1MbTO8MGMNzXNB8H5vIHBuZFVWYLlOUS_yO9c0E0WEYH_Yaq7UtgAn4K2JitPeWgdT6SOxXZj93PhLO5Xht3SQ2lF4CYI7nwu4bB_sccyySg0-pwTi7o4stOjcHjerNvGPygvOYgKv3Aif-8Jv05VQVgIuwQ8vlY7Ldu2yj9ksxuS81XJWewArAEm-ED1nJrH1-q9AK8iNxyDbJZjvSW3AgAlEXNYQXESWlD8UNMwkK">
+
+                </div>
+
             </div>
+
         </section>
-        <!-- Bento Grid Features -->
-        <section class="max-w-container-max mx-auto px-margin-desktop fade-in" style="animation-delay: 0.5s;">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-                <div
-                    class="bg-surface-container-lowest p-10 rounded-2xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group">
-                    <div
-                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-[32px]" data-icon="water_drop">water_drop</span>
-                    </div>
-                    <h3 class="font-headline-md text-headline-md mb-4">Transparansi Murni</h3>
-                    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                        Data Anda aman, biaya kami jelas. Seperti air jernih, kami tidak menyembunyikan apapun di balik
-                        biaya tersembunyi.
-                    </p>
+
+        <!-- STATS -->
+        <section class="max-w-container mx-auto px-6 lg:px-16 mb-32 fade-in">
+
+            <div class="stats-bar ambient-shadow">
+
+                <div class="stat-item">
+                    <div class="stat-num">24</div>
+                    <div class="stat-label">Dispenser Terpantau</div>
                 </div>
-                <div
-                    class="bg-surface-container-lowest p-10 rounded-2xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group">
-                    <div
-                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-[32px]" data-icon="speed">speed</span>
-                    </div>
-                    <h3 class="font-headline-md text-headline-md mb-4">Aliran Cepat</h3>
-                    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                        Proses pengajuan yang mengalir mulus tanpa hambatan birokrasi yang rumit. Dapatkan keputusan
-                        dalam hitungan menit.
-                    </p>
+
+                <div class="stat-item">
+                    <div class="stat-num">2</div>
+                    <div class="stat-label">Gedung</div>
                 </div>
-                <div
-                    class="bg-surface-container-lowest p-10 rounded-2xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group lg:col-span-1 md:col-span-2 lg:col-auto">
-                    <div
-                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                        <span class="material-symbols-outlined text-[32px]"
-                            data-icon="verified_user">verified_user</span>
-                    </div>
-                    <h3 class="font-headline-md text-headline-md mb-4">Kesehatan Finansial</h3>
-                    <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-                        Kami membantu Anda membangun kebiasaan baru yang lebih sehat bagi dompet Anda dalam jangka
-                        panjang.
-                    </p>
+
+                <div class="stat-item">
+                    <div class="stat-num">98%</div>
+                    <div class="stat-label">Uptime Monitoring</div>
                 </div>
+
+                <div class="stat-item">
+                    <div class="stat-num">&lt;15m</div>
+                    <div class="stat-label">Rata-rata Respons</div>
+                </div>
+
             </div>
+
         </section>
+
+        <!-- FEATURES -->
+        <section class="max-w-container mx-auto px-6 lg:px-16 fade-in">
+
+            <div class="mb-3">
+                <span class="text-xs uppercase tracking-[0.2em] font-bold text-primary">
+                    Fitur Utama
+                </span>
+            </div>
+
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+
+                <h2 class="text-4xl lg:text-5xl font-black tracking-tight max-w-[560px] leading-tight">
+                    Semua yang kamu butuhkan dalam satu platform.
+                </h2>
+
+                <p class="text-on-surface-variant max-w-[360px] leading-relaxed">
+                    Dari pemantauan real-time hingga manajemen staff,
+                    CariGalon menjawab setiap kebutuhan logistik air kampus.
+                </p>
+
+            </div>
+
+            <!-- Bento Grid -->
+            <div class="bento-grid">
+
+                <!-- A -->
+                <div
+                    class="bento-a bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+
+                    <div
+                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+
+                        <span class="material-symbols-outlined text-[32px]">
+                            sensors
+                        </span>
+
+                    </div>
+
+                    <h3 class="text-3xl font-bold mb-4">
+                        Status Dispenser Real-Time
+                    </h3>
+
+                    <p class="text-on-surface-variant leading-relaxed">
+                        Pantau kondisi setiap dispenser secara langsung.
+                        Data diperbarui otomatis sehingga kamu selalu tahu
+                        mana yang perlu diisi ulang.
+                    </p>
+
+                </div>
+
+                <!-- B -->
+                <div
+                    class="bento-b bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+
+                    <div
+                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+
+                        <span class="material-symbols-outlined text-[32px]">
+                            bar_chart
+                        </span>
+
+                    </div>
+
+                    <h3 class="text-3xl font-bold mb-4">
+                        Analitik Konsumsi Air
+                    </h3>
+
+                    <p class="text-on-surface-variant leading-relaxed">
+                        Visualisasi tren refill dan laporan per lantai membantu
+                        manajemen kampus membuat keputusan distribusi yang lebih tepat.
+                    </p>
+
+                </div>
+
+                <!-- C -->
+                <div
+                    class="bento-c bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+
+                    <div
+                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+
+                        <span class="material-symbols-outlined text-[32px]">
+                            edit_note
+                        </span>
+
+                    </div>
+
+                    <h3 class="text-2xl font-bold mb-4">
+                        Laporan Cepat
+                    </h3>
+
+                    <p class="text-on-surface-variant leading-relaxed">
+                        Mahasiswa bisa langsung melaporkan dispenser rusak hanya dalam beberapa ketukan.
+                    </p>
+
+                </div>
+
+                <!-- D -->
+                <div
+                    class="bento-d bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+
+                    <div
+                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+
+                        <span class="material-symbols-outlined text-[32px]">
+                            engineering
+                        </span>
+
+                    </div>
+
+                    <h3 class="text-2xl font-bold mb-4">
+                        Manajemen Staff
+                    </h3>
+
+                    <p class="text-on-surface-variant leading-relaxed">
+                        Assign maintenance staff ke dispenser tertentu dengan mudah dan lacak statusnya.
+                    </p>
+
+                </div>
+
+                <!-- E -->
+                <div
+                    class="bento-e bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+
+                    <div
+                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+
+                        <span class="material-symbols-outlined text-[32px]">
+                            map
+                        </span>
+
+                    </div>
+
+                    <h3 class="text-2xl font-bold mb-4">
+                        Peta Lantai
+                    </h3>
+
+                    <p class="text-on-surface-variant leading-relaxed">
+                        Temukan dispenser terdekat menggunakan peta interaktif per gedung dan lantai.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
     </main>
-    <!-- Footer -->
-    <footer class="bg-surface-container-low border-t border-outline-variant/30 pt-20 pb-12">
-        <div class="max-w-container-max mx-auto px-margin-desktop">
+
+    <!-- FOOTER -->
+    <footer class="bg-surface-container-low border-t border-outline-variant/30 pt-20 pb-12 mt-32">
+
+        <div class="max-w-container mx-auto px-6 lg:px-16">
+
             <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
-                <div class="col-span-1 md:col-span-2">
-                    <div class="text-headline-md font-bold text-primary mb-6">CariGalon</div>
-                    <p class="font-body-md text-on-surface-variant max-w-sm mb-8">
-                        Misi kami adalah menyegarkan cara Anda mengelola keuangan, membawa kejernihan dan kemudahan ke
-                        dalam setiap transaksi.
-                    </p>
-                    <div class="flex gap-4">
-                        <a class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all"
-                            href="#">
-                            <span class="material-symbols-outlined text-[20px]">public</span>
-                        </a>
-                        <a class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all"
-                            href="#">
-                            <span class="material-symbols-outlined text-[20px]">share</span>
-                        </a>
+
+                <div class="md:col-span-2">
+
+                    <div class="text-3xl font-black text-primary mb-6">
+                        CariGalon
                     </div>
+
+                    <p class="text-on-surface-variant max-w-sm mb-8 leading-relaxed">
+                        Platform monitoring dan manajemen logistik air minum kampus Universitas Ciputra.
+                    </p>
+
                 </div>
+
                 <div>
-                    <h4 class="font-label-md font-bold text-on-surface mb-6 uppercase tracking-wider">Product</h4>
+
+                    <h4 class="text-sm font-bold uppercase tracking-widest mb-6">
+                        Platform
+                    </h4>
+
                     <ul class="flex flex-col gap-4">
-                        <li class=""><a
-                                class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                                href="#">Features</a></li>
-                        <li class=""><a
-                                class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                                href="#">Security</a></li>
-                        <li class=""><a
-                                class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                                href="#">Business</a></li>
+
+                        <li>
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
+                                Dashboard
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
+                                Peta Dispenser
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
+                                Buat Laporan
+                            </a>
+                        </li>
+
                     </ul>
+
                 </div>
+
                 <div>
-                    <h4 class="font-label-md font-bold text-on-surface mb-6 uppercase tracking-wider">Company</h4>
+
+                    <h4 class="text-sm font-bold uppercase tracking-widest mb-6">
+                        Pengguna
+                    </h4>
+
                     <ul class="flex flex-col gap-4">
-                        <li class=""><a
-                                class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                                href="#">About Us</a></li>
-                        <li class=""><a
-                                class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                                href="#">Careers</a></li>
-                        <li class=""><a
-                                class="font-label-md text-on-surface-variant hover:text-primary transition-colors"
-                                href="#">Contact</a></li>
+
+                        <li>
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
+                                Mahasiswa
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
+                                Staff
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
+                                Admin
+                            </a>
+                        </li>
+
                     </ul>
+
                 </div>
+
             </div>
+
             <div
                 class="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-outline-variant/20 gap-6">
-                <p class="font-body-md text-on-surface-variant opacity-60">© 2024 CariGalon Financial. All rights
-                    reserved.</p>
-                <div class="flex gap-8">
-                    <a class="font-label-sm text-on-surface-variant hover:text-primary transition-all" href="#">Privacy
-                        Policy</a>
-                    <a class="font-label-sm text-on-surface-variant hover:text-primary transition-all" href="#">Terms of
-                        Service</a>
-                    <a class="font-label-sm text-on-surface-variant hover:text-primary transition-all"
-                        href="#">Cookies</a>
+
+                <p class="text-on-surface-variant opacity-60 text-sm">
+                    © 2025 CariGalon — Universitas Ciputra.
+                </p>
+
+                <div class="flex gap-8 text-sm">
+
+                    <a class="text-on-surface-variant hover:text-primary transition-all" href="#">
+                        Tentang Proyek
+                    </a>
+
+                    <a class="text-on-surface-variant hover:text-primary transition-all" href="#">
+                        Kontak
+                    </a>
+
+                    <a class="text-on-surface-variant hover:text-primary transition-all" href="#">
+                        Kebijakan Privasi
+                    </a>
+
                 </div>
+
             </div>
+
         </div>
+
     </footer>
+
     <script>
-        // Scroll interaction for header
         window.addEventListener('scroll', () => {
             const header = document.getElementById('top-app-bar');
+
             if (window.scrollY > 20) {
-                header.classList.add('h-16', 'bg-surface/95', 'shadow-sm', 'border-outline-variant/20');
-                header.classList.remove('h-20', 'border-transparent');
+                header.classList.add(
+                    'h-16',
+                    'shadow-sm'
+                );
+
+                header.classList.remove(
+                    'h-20'
+                );
             } else {
-                header.classList.remove('h-16', 'bg-surface/95', 'shadow-sm', 'border-outline-variant/20');
-                header.classList.add('h-20', 'border-transparent');
+                header.classList.remove(
+                    'h-16',
+                    'shadow-sm'
+                );
+
+                header.classList.add(
+                    'h-20'
+                );
             }
         });
     </script>
-
 
 </body>
 
