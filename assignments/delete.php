@@ -5,12 +5,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = intval($_POST['id'] ?? 0);
 
     try {
-        $stmt = $pdo->prepare("DELETE FROM dispenser WHERE Dispenser_ID = :id");
+        $stmt = $pdo->prepare("DELETE FROM staff_dispenser_assignment WHERE Assignment_ID = :id");
         $stmt->execute([':id' => $id]);
         
-        set_flash('success', 'Dispenser berhasil dihapus.');
+        set_flash('success', 'Penugasan berhasil dihapus.');
     } catch (PDOException $e) {
-        set_flash('error', 'Gagal menghapus dispenser: ' . $e->getMessage());
+        set_flash('error', 'Gagal menghapus penugasan: ' . $e->getMessage());
     }
 }
 

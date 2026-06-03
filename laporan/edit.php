@@ -6,58 +6,89 @@ $activeMenu = 'laporan';
 define('ROOT', dirname(__DIR__));
 
 $id = intval($_GET['id'] ?? 0);
-if (!$id) { header('Location: index.php'); exit; }
 
-$l = $pdo->prepare("SELECT * FROM laporan WHERE id=:id");
-$l->execute([':id' => $id]);
-$l = $l->fetch();
-if (!$l) { set_flash('error', 'Laporan tidak ditemukan.'); header('Location: index.php'); exit; }
+$stmt = $pdo->prepare("SELECT * FROM water_report WHERE WaterReport_ID = :id");
+$stmt->execute([':id' => $id]);
+$report = $stmt->fetch();
 
-$dispenserList = $pdo->query("SELECT id, nama_lokasi, gedung, lantai FROM dispensers ORDER BY gedung, lantai")->fetchAll();
-$staffList     = $pdo->query("SELECT id, nama FROM staff WHERE status='Aktif' ORDER BY nama")->fetchAll();
-$jenisList     = ['Galon Kosong','Dispenser Rusak','Kebocoran','Distribusi Tidak Merata','Lainnya'];
-$statusList    = ['Pending','Diproses','Selesai','Ditolak'];
+if (!$report) {
+    set_flash('error', 'Laporan tidak ditemukan.');
+    header('Location: index.php');
+    exit;
+}
+
+$reportersList = $pdo->query("SELECT Reporter_ID, Nama, Nim FROM reporter ORDER BY Nama")->fetchAll();
+$dispensersList = $pdo->query("
+    SELECT d.Dispenser_ID, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai 
+    FROM dispenser d 
+    JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID 
+    ORDER BY l.Nama_Gedung, l.Lantai, d.Kode_Dispenser
+")->fetchAll();
 
 $errors = [];
+$old    = $report;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $dispenser_id   = intval($_POST['dispenser_id']   ?? 0);
-    $nama_pelapor   = trim($_POST['nama_pelapor']     ?? '');
-    $kontak_pelapor = trim($_POST['kontak_pelapor']   ?? '');
-    $jenis_masalah  = $_POST['jenis_masalah']          ?? '';
-    $deskripsi      = trim($_POST['deskripsi']         ?? '');
-    $status         = $_POST['status']                 ?? '';
-    $staff_id       = !empty($_POST['staff_id']) ? intval($_POST['staff_id']) : null;
-    $catatan_admin  = trim($_POST['catatan_admin']     ?? '');
+    $old = $_POST;
 
-    if (!$dispenser_id)                       $errors[] = 'Pilih dispenser.';
-    if (!$nama_pelapor)                       $errors[] = 'Nama pelapor wajib diisi.';
-    if (!in_array($jenis_masalah, $jenisList)) $errors[] = 'Jenis masalah tidak valid.';
-    if (!$deskripsi)                          $errors[] = 'Deskripsi wajib diisi.';
-    if (!in_array($status, $statusList))      $errors[] = 'Status tidak valid.';
+    $reporter_id      = intval($_POST['reporter_id'] ?? 0);
+    $dispenser_id     = intval($_POST['dispenser_id'] ?? 0);
+    $kategori         = $_POST['kategori'] ?? '';
+    $status           = $_POST['status'] ?? 'Pending';
+    $deskripsi_report = trim($_POST['deskripsi_report'] ?? '');
+    $foto_url         = trim($_POST['foto_url'] ?? '');
+
+    // Validation
+    if (!$reporter_id) {
+        $errors[] = 'Pilih pelapor.';
+    }
+    if (!$dispenser_id) {
+        $errors[] = 'Pilih dispenser.';
+    }
+    if (!in_array($kategori, ['Galon Kosong', 'Dispenser Rusak', 'Kebocoran', 'Distribusi Tidak Merata', 'Lainnya'])) {
+        $errors[] = 'Kategori masalah tidak valid.';
+    }
+    if (!in_array($status, ['Pending', 'Diproses', 'Selesai', 'Ditolak'])) {
+        $errors[] = 'Status tidak valid.';
+    }
+    if (!$deskripsi_report) {
+        $errors[] = 'Deskripsi kendala wajib diisi.';
+    }
 
     if (empty($errors)) {
-        $pdo->prepare("
-            UPDATE laporan SET dispenser_id=:did, nama_pelapor=:nama, kontak_pelapor=:kontak,
-                jenis_masalah=:jenis, deskripsi=:desk, status=:status,
-                staff_id=:staff_id, catatan_admin=:catatan_admin
-            WHERE id=:id
-        ")->execute([
-            ':did'          => $dispenser_id,
-            ':nama'         => $nama_pelapor,
-            ':kontak'       => $kontak_pelapor ?: null,
-            ':jenis'        => $jenis_masalah,
-            ':desk'         => $deskripsi,
-            ':status'       => $status,
-            ':staff_id'     => $staff_id,
-            ':catatan_admin'=> $catatan_admin ?: null,
-            ':id'           => $id,
-        ]);
-        set_flash('success', 'Laporan berhasil diperbarui!');
-        header('Location: index.php');
-        exit;
+        try {
+            // Determine resolved_at timestamp
+            $resolved_at = $report['Resolved_At'];
+            if ($status === 'Selesai' && $report['Status'] !== 'Selesai') {
+                $resolved_at = date('Y-m-d H:i:s');
+            } elseif ($status !== 'Selesai') {
+                $resolved_at = null;
+            }
+
+            $stmt = $pdo->prepare("
+                UPDATE water_report 
+                SET Reporter_ID = :reporter_id, Dispenser_ID = :dispenser_id, Kategori = :kategori, 
+                    Status = :status, Deskripsi_Report = :deskripsi_report, Foto_url = :foto_url, Resolved_At = :resolved_at
+                WHERE WaterReport_ID = :id
+            ");
+            $stmt->execute([
+                ':reporter_id'      => $reporter_id,
+                ':dispenser_id'     => $dispenser_id,
+                ':kategori'         => $kategori,
+                ':status'           => $status,
+                ':deskripsi_report' => $deskripsi_report,
+                ':foto_url'         => $foto_url ?: null,
+                ':resolved_at'      => $resolved_at,
+                ':id'               => $id,
+            ]);
+
+            set_flash('success', 'Laporan kendala berhasil diperbarui!');
+            header('Location: index.php');
+            exit;
+        } catch (PDOException $e) {
+            $errors[] = 'Gagal memperbarui laporan: ' . $e->getMessage();
+        }
     }
-    $l = array_merge($l, $_POST);
 }
 
 include __DIR__ . '/../_partials/layout_head.php';
@@ -68,27 +99,42 @@ include __DIR__ . '/../_partials/layout_head.php';
         <a href="index.php" style="color:#9ca3af;font-size:.85rem;text-decoration:none;display:flex;align-items:center;gap:4px;margin-bottom:6px;">
             <span class="mat-icon" style="font-size:16px">arrow_back</span> Kembali
         </a>
-        <div class="page-title">Edit Laporan #<?= $id ?></div>
+        <div class="page-title">Edit Laporan Kendala</div>
     </div>
 </div>
 
 <?php if ($errors): ?>
 <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:14px;padding:14px 18px;margin-bottom:1.25rem;">
     <?php foreach ($errors as $e): ?>
-        <div style="color:#dc2626;font-size:.875rem;"><?= h($e) ?></div>
+        <div style="color:#dc2626;font-size:.875rem;display:flex;align-items:center;gap:6px;">
+            <span class="mat-icon" style="font-size:16px">error</span> <?= h($e) ?>
+        </div>
     <?php endforeach; ?>
 </div>
 <?php endif; ?>
 
-<div style="max-width:720px;">
+<div style="display:grid;grid-template-columns: 2fr 1fr;gap:1.5rem;align-items:start;">
 <div class="card" style="padding:32px;">
     <form method="POST">
         <div class="form-group">
-            <label class="form-label">Dispenser <span style="color:#ef4444">*</span></label>
+            <label class="form-label">Pelapor <span style="color:#ef4444">*</span></label>
+            <select name="reporter_id" class="form-select" required>
+                <option value="">— Pilih Pelapor —</option>
+                <?php foreach ($reportersList as $rep): ?>
+                <option value="<?= $rep['Reporter_ID'] ?>" <?= (($old['Reporter_ID'] ?? ($old['reporter_id'] ?? '')) == $rep['Reporter_ID']) ? 'selected' : '' ?>>
+                    <?= h($rep['Nama']) ?> (NIM: <?= h($rep['Nim']) ?>)
+                </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Dispenser Bermasalah <span style="color:#ef4444">*</span></label>
             <select name="dispenser_id" class="form-select" required>
-                <?php foreach ($dispenserList as $d): ?>
-                <option value="<?= $d['id'] ?>" <?= $l['dispenser_id'] == $d['id'] ? 'selected' : '' ?>>
-                    <?= h($d['nama_lokasi']) ?> — <?= h($d['gedung']) ?> Lt.<?= $d['lantai'] ?>
+                <option value="">— Pilih Dispenser —</option>
+                <?php foreach ($dispensersList as $d): ?>
+                <option value="<?= $d['Dispenser_ID'] ?>" <?= (($old['Dispenser_ID'] ?? ($old['dispenser_id'] ?? '')) == $d['Dispenser_ID']) ? 'selected' : '' ?>>
+                    <?= h($d['Nama_Gedung']) ?> Lt. <?= h($d['Lantai']) ?> - <?= h($d['Kode_Dispenser']) ?>
                 </option>
                 <?php endforeach; ?>
             </select>
@@ -96,63 +142,63 @@ include __DIR__ . '/../_partials/layout_head.php';
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="form-group">
-                <label class="form-label">Nama Pelapor <span style="color:#ef4444">*</span></label>
-                <input type="text" name="nama_pelapor" value="<?= h($l['nama_pelapor']) ?>" class="form-input" required>
+                <label class="form-label">Kategori Masalah <span style="color:#ef4444">*</span></label>
+                <select name="kategori" class="form-select" required>
+                    <option value="">— Pilih Masalah —</option>
+                    <?php foreach (['Galon Kosong', 'Dispenser Rusak', 'Kebocoran', 'Distribusi Tidak Merata', 'Lainnya'] as $kat): ?>
+                    <option value="<?= $kat ?>" <?= (($old['Kategori'] ?? ($old['kategori'] ?? '')) === $kat) ? 'selected' : '' ?>><?= $kat ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Kontak Pelapor</label>
-                <input type="text" name="kontak_pelapor" value="<?= h($l['kontak_pelapor']) ?>" class="form-input">
+                <label class="form-label">Status <span style="color:#ef4444">*</span></label>
+                <select name="status" class="form-select" required>
+                    <?php foreach (['Pending', 'Diproses', 'Selesai', 'Ditolak'] as $st): ?>
+                    <option value="<?= $st ?>" <?= (($old['Status'] ?? ($old['status'] ?? 'Pending')) === $st) ? 'selected' : '' ?>><?= $st ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Jenis Masalah <span style="color:#ef4444">*</span></label>
-            <select name="jenis_masalah" class="form-select" required>
-                <?php foreach ($jenisList as $j): ?>
-                <option value="<?= $j ?>" <?= $l['jenis_masalah'] === $j ? 'selected' : '' ?>><?= $j ?></option>
-                <?php endforeach; ?>
-            </select>
+            <label class="form-label">URL Foto Pendukung (Opsional)</label>
+            <input type="url" name="foto_url" value="<?= h($old['Foto_url'] ?? ($old['foto_url'] ?? '')) ?>"
+                   class="form-input" placeholder="https://example.com/foto-rusak.jpg">
         </div>
 
         <div class="form-group">
-            <label class="form-label">Deskripsi <span style="color:#ef4444">*</span></label>
-            <textarea name="deskripsi" class="form-textarea" rows="3" required><?= h($l['deskripsi']) ?></textarea>
+            <label class="form-label">Deskripsi Kendala <span style="color:#ef4444">*</span></label>
+            <textarea name="deskripsi_report" class="form-textarea" placeholder="Tulis rincian kendala air dispenser di sini…" rows="4" required><?= h($old['Deskripsi_Report'] ?? ($old['deskripsi_report'] ?? '')) ?></textarea>
         </div>
 
-        <div style="border-top:1px solid #f3f4f6;padding-top:20px;margin-top:4px;">
-            <div style="font-size:.8rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px;">Respons Admin</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                <div class="form-group">
-                    <label class="form-label">Status <span style="color:#ef4444">*</span></label>
-                    <select name="status" class="form-select" required>
-                        <?php foreach ($statusList as $st): ?>
-                        <option value="<?= $st ?>" <?= $l['status'] === $st ? 'selected' : '' ?>><?= $st ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Assign ke Staff</label>
-                    <select name="staff_id" class="form-select">
-                        <option value="">— Tidak Ditugaskan —</option>
-                        <?php foreach ($staffList as $s): ?>
-                        <option value="<?= $s['id'] ?>" <?= $l['staff_id'] == $s['id'] ? 'selected' : '' ?>><?= h($s['nama']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Catatan Admin</label>
-                <textarea name="catatan_admin" class="form-textarea" rows="2"><?= h($l['catatan_admin']) ?></textarea>
-            </div>
-        </div>
-
-        <div style="display:flex;gap:12px;">
+        <div style="display:flex;gap:12px;margin-top:8px;">
             <button type="submit" class="btn-primary">
                 <span class="mat-icon" style="font-size:18px">save</span> Simpan Perubahan
             </button>
             <a href="index.php" class="btn-secondary">Batal</a>
         </div>
     </form>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:1.5rem;">
+    <!-- Photo Preview -->
+    <?php if (!empty($report['Foto_url'])): ?>
+    <div class="card" style="padding:20px;">
+        <div style="font-weight:700;color:#0b1f3a;margin-bottom:12px;">Foto Lampiran</div>
+        <img src="<?= h($report['Foto_url']) ?>" alt="Foto kendala" style="width:100%;height:auto;border-radius:10px;border:1px solid #e5e7eb;max-height:220px;object-fit:cover;">
+    </div>
+    <?php endif; ?>
+
+    <!-- Info Card -->
+    <div class="card" style="padding:20px;">
+        <div style="font-weight:700;color:#0b1f3a;margin-bottom:12px;">Metadata Laporan</div>
+        <div style="font-size:.82rem;color:#6b7280;line-height:1.6;">
+            <div>Reported At: <b><?= date('d M Y, H:i', strtotime($report['Reported_At'])) ?> WIB</b></div>
+            <?php if ($report['Resolved_At']): ?>
+                <div class="text-emerald-700">Resolved At: <b><?= date('d M Y, H:i', strtotime($report['Resolved_At'])) ?> WIB</b></div>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
 </div>
 

@@ -24,10 +24,12 @@ if ($scriptDir === $rootDir) {
 
 $menuItems = [
     ['key' => 'dashboard',   'href' => $base . 'dashboard/index.php',  'icon' => 'dashboard',      'label' => 'Dashboard'],
+    ['key' => 'lokasi',      'href' => $base . 'lokasi/index.php',     'icon' => 'map',            'label' => 'Lokasi'],
     ['key' => 'dispensers',  'href' => $base . 'dispensers/index.php', 'icon' => 'water_drop',     'label' => 'Dispensers'],
-    ['key' => 'galon',       'href' => $base . 'galon/index.php',      'icon' => 'package_2',      'label' => 'Stok Galon'],
-    ['key' => 'laporan',     'href' => $base . 'laporan/index.php',    'icon' => 'report',         'label' => 'Laporan'],
+    ['key' => 'reporters',   'href' => $base . 'reporters/index.php',  'icon' => 'person',         'label' => 'Reporters'],
+    ['key' => 'laporan',     'href' => $base . 'laporan/index.php',    'icon' => 'report',         'label' => 'Laporan Masalah'],
     ['key' => 'staff',       'href' => $base . 'staff/index.php',      'icon' => 'engineering',    'label' => 'Staff'],
+    ['key' => 'assignments', 'href' => $base . 'assignments/index.php','icon' => 'assignment_turned_in', 'label' => 'Assignments'],
     ['key' => 'refill',      'href' => $base . 'refill/index.php',     'icon' => 'recycling',      'label' => 'Refill Log'],
 ];
 ?>
@@ -162,7 +164,7 @@ $menuItems = [
 
     <!-- Footer -->
     <div class="p-4 border-t border-white/10">
-        <a href="<?= $base ?>index.html"
+        <a href="<?= $base ?>index.php"
            class="sidebar-link" style="font-size:.8rem;">
             <span class="mat-icon" style="font-size:18px">home</span>
             Kembali ke Beranda

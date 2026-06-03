@@ -6,52 +6,70 @@ $activeMenu = 'dispensers';
 define('ROOT', dirname(__DIR__));
 
 $id = intval($_GET['id'] ?? 0);
-if (!$id) { header('Location: index.php'); exit; }
 
-$dispenser = $pdo->prepare("SELECT * FROM dispensers WHERE id = :id");
-$dispenser->execute([':id' => $id]);
-$dispenser = $dispenser->fetch();
-if (!$dispenser) { set_flash('error', 'Dispenser tidak ditemukan.'); header('Location: index.php'); exit; }
+$stmt = $pdo->prepare("SELECT * FROM dispenser WHERE Dispenser_ID = :id");
+$stmt->execute([':id' => $id]);
+$dispenser = $stmt->fetch();
 
-$staffList = $pdo->query("SELECT id, nama FROM staff WHERE status='Aktif' ORDER BY nama")->fetchAll();
+if (!$dispenser) {
+    set_flash('error', 'Dispenser tidak ditemukan.');
+    header('Location: index.php');
+    exit;
+}
+
+$locationsList = $pdo->query("SELECT Lokasi_ID, Nama_Gedung, Lantai FROM lokasi ORDER BY Nama_Gedung, Lantai")->fetchAll();
 
 $errors = [];
+$old    = $dispenser;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama_lokasi = trim($_POST['nama_lokasi'] ?? '');
-    $gedung      = $_POST['gedung']           ?? '';
-    $lantai      = intval($_POST['lantai']    ?? 0);
-    $status      = $_POST['status']           ?? '';
-    $staff_id    = !empty($_POST['staff_id']) ? intval($_POST['staff_id']) : null;
-    $catatan     = trim($_POST['catatan']     ?? '');
+    $old = $_POST;
 
-    if (!$nama_lokasi)                                           $errors[] = 'Nama lokasi wajib diisi.';
-    if (!in_array($gedung, ['Main Building','UC Tower','Gedung Lain'])) $errors[] = 'Gedung tidak valid.';
-    if ($lantai < 1 || $lantai > 50)                            $errors[] = 'Lantai harus antara 1–50.';
-    if (!in_array($status, ['Normal','Kosong','Rusak','Maintenance'])) $errors[] = 'Status tidak valid.';
+    $lokasi_id      = intval($_POST['lokasi_id'] ?? 0);
+    $kode_dispenser = trim($_POST['kode_dispenser'] ?? '');
+    $kategori       = $_POST['kategori'] ?? '';
+
+    // Validation
+    if (!$lokasi_id) {
+        $errors[] = 'Pilih lokasi dispenser.';
+    }
+    if (!$kode_dispenser) {
+        $errors[] = 'Kode dispenser wajib diisi.';
+    }
+    if (!in_array($kategori, ['Normal', 'Hot & Cold', 'Hot, Cold & Normal'])) {
+        $errors[] = 'Kategori tidak valid.';
+    }
+
+    // Check duplicate Kode_Dispenser if changed
+    if ($kode_dispenser && $kode_dispenser !== $dispenser['Kode_Dispenser']) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM dispenser WHERE Kode_Dispenser = :code");
+        $stmt->execute([':code' => $kode_dispenser]);
+        if ($stmt->fetchColumn() > 0) {
+            $errors[] = 'Kode dispenser sudah terdaftar.';
+        }
+    }
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare("
-            UPDATE dispensers
-            SET nama_lokasi=:nama_lokasi, gedung=:gedung, lantai=:lantai,
-                status=:status, staff_id=:staff_id, catatan=:catatan
-            WHERE id=:id
-        ");
-        $stmt->execute([
-            ':nama_lokasi' => $nama_lokasi,
-            ':gedung'      => $gedung,
-            ':lantai'      => $lantai,
-            ':status'      => $status,
-            ':staff_id'    => $staff_id,
-            ':catatan'     => $catatan ?: null,
-            ':id'          => $id,
-        ]);
-        set_flash('success', "Dispenser \"$nama_lokasi\" berhasil diperbarui!");
-        header('Location: index.php');
-        exit;
+        try {
+            $stmt = $pdo->prepare("
+                UPDATE dispenser 
+                SET Lokasi_ID = :lokasi_id, Kode_Dispenser = :kode_dispenser, Kategori = :kategori
+                WHERE Dispenser_ID = :id
+            ");
+            $stmt->execute([
+                ':lokasi_id'      => $lokasi_id,
+                ':kode_dispenser' => $kode_dispenser,
+                ':kategori'       => $kategori,
+                ':id'             => $id,
+            ]);
+
+            set_flash('success', "Dispenser \"$kode_dispenser\" berhasil diperbarui!");
+            header('Location: index.php');
+            exit;
+        } catch (PDOException $e) {
+            $errors[] = 'Gagal memperbarui dispenser: ' . $e->getMessage();
+        }
     }
-    // Re-populate with POST data on error
-    $dispenser = array_merge($dispenser, $_POST);
 }
 
 include __DIR__ . '/../_partials/layout_head.php';
@@ -63,7 +81,6 @@ include __DIR__ . '/../_partials/layout_head.php';
             <span class="mat-icon" style="font-size:16px">arrow_back</span> Kembali
         </a>
         <div class="page-title">Edit Dispenser</div>
-        <div class="page-subtitle">ID #<?= $id ?> — <?= h($dispenser['nama_lokasi']) ?></div>
     </div>
 </div>
 
@@ -81,55 +98,36 @@ include __DIR__ . '/../_partials/layout_head.php';
 <div class="card" style="padding:32px;">
     <form method="POST">
         <div class="form-group">
-            <label class="form-label">Nama Lokasi <span style="color:#ef4444">*</span></label>
-            <input type="text" name="nama_lokasi" value="<?= h($dispenser['nama_lokasi']) ?>"
-                   class="form-input" required maxlength="150">
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div class="form-group">
-                <label class="form-label">Gedung <span style="color:#ef4444">*</span></label>
-                <select name="gedung" class="form-select" required>
-                    <?php foreach (['Main Building','UC Tower','Gedung Lain'] as $g): ?>
-                    <option value="<?= $g ?>" <?= $dispenser['gedung'] === $g ? 'selected' : '' ?>><?= $g ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Lantai <span style="color:#ef4444">*</span></label>
-                <input type="number" name="lantai" value="<?= h($dispenser['lantai']) ?>"
-                       class="form-input" min="1" max="50" required>
-            </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div class="form-group">
-                <label class="form-label">Status <span style="color:#ef4444">*</span></label>
-                <select name="status" class="form-select" required>
-                    <?php foreach (['Normal','Kosong','Rusak','Maintenance'] as $st): ?>
-                    <option value="<?= $st ?>" <?= $dispenser['status'] === $st ? 'selected' : '' ?>><?= $st ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Staff Penanggung Jawab</label>
-                <select name="staff_id" class="form-select">
-                    <option value="">— Tidak Ditugaskan —</option>
-                    <?php foreach ($staffList as $s): ?>
-                    <option value="<?= $s['id'] ?>" <?= $dispenser['staff_id'] == $s['id'] ? 'selected' : '' ?>><?= h($s['nama']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+            <label class="form-label">Kode Dispenser <span style="color:#ef4444">*</span></label>
+            <input type="text" name="kode_dispenser" value="<?= h($old['Kode_Dispenser'] ?? ($old['kode_dispenser'] ?? '')) ?>"
+                   class="form-input" placeholder="Contoh: DISP-MB-101"
+                   required maxlength="50">
         </div>
 
         <div class="form-group">
-            <label class="form-label">Catatan</label>
-            <textarea name="catatan" class="form-textarea" rows="3"><?= h($dispenser['catatan']) ?></textarea>
+            <label class="form-label">Lokasi <span style="color:#ef4444">*</span></label>
+            <select name="lokasi_id" class="form-select" required>
+                <option value="">— Pilih Lokasi —</option>
+                <?php foreach ($locationsList as $l): ?>
+                <option value="<?= $l['Lokasi_ID'] ?>" <?= (($old['Lokasi_ID'] ?? ($old['lokasi_id'] ?? '')) == $l['Lokasi_ID']) ? 'selected' : '' ?>>
+                    <?= h($l['Nama_Gedung']) ?> - Lantai <?= h($l['Lantai']) ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Kategori <span style="color:#ef4444">*</span></label>
+            <select name="kategori" class="form-select" required>
+                <?php foreach (['Normal', 'Hot & Cold', 'Hot, Cold & Normal'] as $kat): ?>
+                <option value="<?= $kat ?>" <?= (($old['Kategori'] ?? ($old['kategori'] ?? 'Normal')) === $kat) ? 'selected' : '' ?>><?= $kat ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
 
         <div style="display:flex;gap:12px;margin-top:8px;">
             <button type="submit" class="btn-primary">
-                <span class="mat-icon" style="font-size:18px">save</span> Simpan Perubahan
+                <span class="mat-icon" style="font-size:18px">save</span> Perbarui Dispenser
             </button>
             <a href="index.php" class="btn-secondary">Batal</a>
         </div>

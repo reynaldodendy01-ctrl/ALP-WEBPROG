@@ -5,63 +5,71 @@ $pageTitle  = 'Catat Refill';
 $activeMenu = 'refill';
 define('ROOT', dirname(__DIR__));
 
-$dispenserList = $pdo->query("SELECT id, nama_lokasi, gedung, lantai FROM dispensers ORDER BY gedung, lantai")->fetchAll();
-$staffList     = $pdo->query("SELECT id, nama FROM staff WHERE status='Aktif' ORDER BY nama")->fetchAll();
+$assignmentsList = $pdo->query("
+    SELECT a.Assignment_ID, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai, a.Status
+    FROM staff_dispenser_assignment a
+    JOIN maintenance_staff ms ON a.Staff_ID = ms.Staff_ID
+    JOIN dispenser d ON a.Dispenser_ID = d.Dispenser_ID
+    JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
+    WHERE a.Status != 'Cancelled'
+    ORDER BY a.Created_At DESC
+")->fetchAll();
 
 $errors = [];
 $old    = [];
-$old['dispenser_id'] = $_GET['dispenser_id'] ?? '';
+
+// Support passing assignment_id via GET
+if (isset($_GET['assignment_id'])) {
+    $old['assignment_id'] = intval($_GET['assignment_id']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
 
-    $dispenser_id  = intval($_POST['dispenser_id']  ?? 0);
-    $staff_id      = !empty($_POST['staff_id']) ? intval($_POST['staff_id']) : null;
-    $jumlah_galon  = intval($_POST['jumlah_galon']  ?? 1);
-    $tanggal_refill = !empty($_POST['tanggal_refill']) ? $_POST['tanggal_refill'] : date('Y-m-d\TH:i');
-    $catatan       = trim($_POST['catatan']          ?? '');
-    $update_stok   = isset($_POST['update_stok']);
+    $assignment_id = intval($_POST['assignment_id'] ?? 0);
+    $catatan       = trim($_POST['catatan'] ?? '');
 
-    if (!$dispenser_id)                              $errors[] = 'Pilih dispenser.';
-    if ($jumlah_galon < 1 || $jumlah_galon > 99)    $errors[] = 'Jumlah galon harus antara 1–99.';
+    // Validation
+    if (!$assignment_id) {
+        $errors[] = 'Pilih penugasan (assignment) yang berkaitan.';
+    }
 
     if (empty($errors)) {
-        // Insert refill log
-        $pdo->prepare("
-            INSERT INTO refill_log (dispenser_id, staff_id, jumlah_galon, tanggal_refill, catatan)
-            VALUES (:did, :sid, :jml, :tgl, :cat)
-        ")->execute([
-            ':did' => $dispenser_id,
-            ':sid' => $staff_id,
-            ':jml' => $jumlah_galon,
-            ':tgl' => $tanggal_refill,
-            ':cat' => $catatan ?: null,
-        ]);
+        try {
+            $pdo->beginTransaction();
 
-        // Optionally update galon stock
-        if ($update_stok) {
-            $galon = $pdo->prepare("SELECT * FROM galon WHERE dispenser_id=:did");
-            $galon->execute([':did' => $dispenser_id]);
-            $galon = $galon->fetch();
+            // Insert refill log
+            $stmt = $pdo->prepare("
+                INSERT INTO refill_logs (Assignment_ID, Refill_At, Catatan)
+                VALUES (:assignment_id, NOW(), :catatan)
+            ");
+            $stmt->execute([
+                ':assignment_id' => $assignment_id,
+                ':catatan'       => $catatan ?: null,
+            ]);
 
-            if ($galon) {
-                $newJumlah = min($galon['kapasitas_max'], $galon['jumlah_tersedia'] + $jumlah_galon);
-                $pdo->prepare("
-                    UPDATE galon SET jumlah_tersedia=:j, terakhir_diisi=:tgl
-                    WHERE dispenser_id=:did
-                ")->execute([':j'=>$newJumlah, ':tgl'=>$tanggal_refill, ':did'=>$dispenser_id]);
+            // Auto-complete the penugasan when refilled
+            $pdo->prepare("UPDATE staff_dispenser_assignment SET Status = 'Completed' WHERE Assignment_ID = :asg_id")
+                ->execute([':asg_id' => $assignment_id]);
 
-                // Update dispenser status to Normal if it was Kosong
-                $pdo->prepare("
-                    UPDATE dispensers SET status='Normal'
-                    WHERE id=:did AND status='Kosong'
-                ")->execute([':did' => $dispenser_id]);
+            // Also, find if this assignment is linked to a water report, and set that report to Completed (Selesai)
+            $stmtAsg = $pdo->prepare("SELECT WaterReport_ID FROM staff_dispenser_assignment WHERE Assignment_ID = :asg_id");
+            $stmtAsg->execute([':asg_id' => $assignment_id]);
+            $report_id = $stmtAsg->fetchColumn();
+
+            if ($report_id) {
+                $pdo->prepare("UPDATE water_report SET Status = 'Selesai', Resolved_At = NOW() WHERE WaterReport_ID = :wr_id")
+                    ->execute([':wr_id' => $report_id]);
             }
-        }
 
-        set_flash('success', "Refill $jumlah_galon galon berhasil dicatat!" . ($update_stok ? ' Stok galon diperbarui.' : ''));
-        header('Location: index.php');
-        exit;
+            $pdo->commit();
+            set_flash('success', 'Log pengisian galon berhasil dicatat!');
+            header('Location: index.php');
+            exit;
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            $errors[] = 'Gagal mencatat refill: ' . $e->getMessage();
+        }
     }
 }
 
@@ -73,7 +81,7 @@ include __DIR__ . '/../_partials/layout_head.php';
         <a href="index.php" style="color:#9ca3af;font-size:.85rem;text-decoration:none;display:flex;align-items:center;gap:4px;margin-bottom:6px;">
             <span class="mat-icon" style="font-size:16px">arrow_back</span> Kembali
         </a>
-        <div class="page-title">Catat Pengisian Galon</div>
+        <div class="page-title">Catat Pengisian Galon (Refill)</div>
     </div>
 </div>
 
@@ -87,67 +95,30 @@ include __DIR__ . '/../_partials/layout_head.php';
 </div>
 <?php endif; ?>
 
-<div style="max-width:620px;">
+<div style="max-width:680px;">
 <div class="card" style="padding:32px;">
     <form method="POST">
         <div class="form-group">
-            <label class="form-label">Dispenser <span style="color:#ef4444">*</span></label>
-            <select name="dispenser_id" class="form-select" required id="dispenser_select">
-                <option value="">— Pilih Dispenser —</option>
-                <?php foreach ($dispenserList as $d): ?>
-                <option value="<?= $d['id'] ?>" <?= ($old['dispenser_id'] ?? '') == $d['id'] ? 'selected' : '' ?>>
-                    <?= h($d['nama_lokasi']) ?> — <?= h($d['gedung']) ?> Lt.<?= $d['lantai'] ?>
+            <label class="form-label">Pilih Penugasan Maintenance <span style="color:#ef4444">*</span></label>
+            <select name="assignment_id" class="form-select" required>
+                <option value="">— Pilih Penugasan Staff —</option>
+                <?php foreach ($assignmentsList as $asg): ?>
+                <option value="<?= $asg['Assignment_ID'] ?>" <?= ($old['assignment_id'] ?? '') == $asg['Assignment_ID'] ? 'selected' : '' ?>>
+                    [Penugasan #<?= $asg['Assignment_ID'] ?>] <?= h($asg['nama_staff']) ?> → <?= h($asg['Kode_Dispenser']) ?> (<?= h($asg['Nama_Gedung']) ?>) - Status: <?= h($asg['Status']) ?>
                 </option>
                 <?php endforeach; ?>
             </select>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div class="form-group">
-                <label class="form-label">Jumlah Galon <span style="color:#ef4444">*</span></label>
-                <input type="number" name="jumlah_galon" value="<?= h($old['jumlah_galon'] ?? '1') ?>"
-                       class="form-input" min="1" max="99" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Staff Pengisi</label>
-                <select name="staff_id" class="form-select">
-                    <option value="">— Pilih Staff —</option>
-                    <?php foreach ($staffList as $s): ?>
-                    <option value="<?= $s['id'] ?>" <?= ($old['staff_id'] ?? '') == $s['id'] ? 'selected' : '' ?>><?= h($s['nama']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+            <p style="font-size:.78rem;color:#9ca3af;margin-top:4px;">Pilih penugasan staff yang melatarbelakangi pengisian galon ini. Mencatat refill akan mengubah status penugasan menjadi "Completed".</p>
         </div>
 
         <div class="form-group">
-            <label class="form-label">Tanggal & Waktu Pengisian</label>
-            <input type="datetime-local" name="tanggal_refill"
-                   value="<?= h($old['tanggal_refill'] ?? date('Y-m-d\TH:i')) ?>"
-                   class="form-input">
+            <label class="form-label">Catatan Pengisian</label>
+            <textarea name="catatan" class="form-textarea" placeholder="Tulis catatan (misal: Mengisi 2 galon air mineral standard)…" rows="3"><?= h($old['catatan'] ?? '') ?></textarea>
         </div>
 
-        <div class="form-group">
-            <label class="form-label">Catatan</label>
-            <textarea name="catatan" class="form-textarea" rows="2"
-                      placeholder="Catatan tambahan (opsional)…"><?= h($old['catatan'] ?? '') ?></textarea>
-        </div>
-
-        <!-- Auto update stok toggle -->
-        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:14px;margin-bottom:20px;">
-            <input type="checkbox" name="update_stok" id="update_stok" value="1"
-                   <?= isset($old['update_stok']) || !isset($_POST['update_stok']) ? 'checked' : '' ?>
-                   style="width:18px;height:18px;accent-color:#0058bc;cursor:pointer;">
-            <label for="update_stok" style="font-size:.875rem;font-weight:600;color:#0369a1;cursor:pointer;">
-                Perbarui stok galon secara otomatis
-                <span style="font-weight:400;color:#0284c7;display:block;font-size:.78rem;">
-                    Jumlah stok di modul Galon akan ditambah sesuai input
-                </span>
-            </label>
-        </div>
-
-        <div style="display:flex;gap:12px;">
+        <div style="display:flex;gap:12px;margin-top:8px;">
             <button type="submit" class="btn-primary">
-                <span class="mat-icon" style="font-size:18px">recycling</span> Catat Refill
+                <span class="mat-icon" style="font-size:18px">save</span> Catat Refill
             </button>
             <a href="index.php" class="btn-secondary">Batal</a>
         </div>

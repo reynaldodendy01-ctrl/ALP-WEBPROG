@@ -11,21 +11,40 @@ $old    = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
 
-    $nama       = trim($_POST['nama']       ?? '');
-    $no_hp      = trim($_POST['no_hp']      ?? '');
-    $area_tugas = trim($_POST['area_tugas'] ?? '');
-    $status     = $_POST['status']           ?? 'Aktif';
+    $nama    = trim($_POST['nama'] ?? '');
+    $email   = trim($_POST['email'] ?? '');
+    $no_telp = trim($_POST['no_telp'] ?? '');
 
-    if (!$nama)                                              $errors[] = 'Nama staff wajib diisi.';
-    if (!$no_hp)                                             $errors[] = 'No. HP wajib diisi.';
-    if (!$area_tugas)                                        $errors[] = 'Area tugas wajib diisi.';
-    if (!in_array($status, ['Aktif','Tidak Aktif']))         $errors[] = 'Status tidak valid.';
+    if (!$nama) {
+        $errors[] = 'Nama staff wajib diisi.';
+    }
+    if (!$email) {
+        $errors[] = 'Email wajib diisi.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Format email tidak valid.';
+    }
+    if (!$no_telp) {
+        $errors[] = 'No. telepon wajib diisi.';
+    }
 
     if (empty($errors)) {
-        $pdo->prepare("INSERT INTO staff (nama, no_hp, area_tugas, status) VALUES (:nama, :hp, :area, :status)")
-            ->execute([':nama'=>$nama,':hp'=>$no_hp,':area'=>$area_tugas,':status'=>$status]);
-        set_flash('success', "Staff \"$nama\" berhasil ditambahkan!");
-        header('Location: index.php'); exit;
+        try {
+            $stmt = $pdo->prepare("
+                INSERT INTO maintenance_staff (Nama, Email, No_Telp)
+                VALUES (:nama, :email, :no_telp)
+            ");
+            $stmt->execute([
+                ':nama'    => $nama,
+                ':email'   => $email,
+                ':no_telp' => $no_telp,
+            ]);
+
+            set_flash('success', "Staff \"$nama\" berhasil ditambahkan!");
+            header('Location: index.php');
+            exit;
+        } catch (PDOException $e) {
+            $errors[] = 'Gagal menyimpan staff: ' . $e->getMessage();
+        }
     }
 }
 
@@ -43,7 +62,11 @@ include __DIR__ . '/../_partials/layout_head.php';
 
 <?php if ($errors): ?>
 <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:14px;padding:14px 18px;margin-bottom:1.25rem;">
-    <?php foreach ($errors as $e): ?><div style="color:#dc2626;font-size:.875rem;"><?= h($e) ?></div><?php endforeach; ?>
+    <?php foreach ($errors as $e): ?>
+        <div style="color:#dc2626;font-size:.875rem;display:flex;align-items:center;gap:6px;">
+            <span class="mat-icon" style="font-size:16px">error</span> <?= h($e) ?>
+        </div>
+    <?php endforeach; ?>
 </div>
 <?php endif; ?>
 
@@ -56,30 +79,21 @@ include __DIR__ . '/../_partials/layout_head.php';
                    class="form-input" placeholder="Nama lengkap staff" required maxlength="100">
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div class="form-group">
-                <label class="form-label">No. HP <span style="color:#ef4444">*</span></label>
-                <input type="text" name="no_hp" value="<?= h($old['no_hp'] ?? '') ?>"
-                       class="form-input" placeholder="08xxxxxxxxxx" required maxlength="20">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Status <span style="color:#ef4444">*</span></label>
-                <select name="status" class="form-select">
-                    <option value="Aktif"       <?= ($old['status'] ?? 'Aktif') === 'Aktif'       ? 'selected' : '' ?>>Aktif</option>
-                    <option value="Tidak Aktif" <?= ($old['status'] ?? '') === 'Tidak Aktif' ? 'selected' : '' ?>>Tidak Aktif</option>
-                </select>
-            </div>
+        <div class="form-group">
+            <label class="form-label">Email <span style="color:#ef4444">*</span></label>
+            <input type="email" name="email" value="<?= h($old['email'] ?? '') ?>"
+                   class="form-input" placeholder="staff@uc.ac.id" required maxlength="100">
         </div>
 
         <div class="form-group">
-            <label class="form-label">Area Tugas <span style="color:#ef4444">*</span></label>
-            <input type="text" name="area_tugas" value="<?= h($old['area_tugas'] ?? '') ?>"
-                   class="form-input" placeholder="Contoh: Main Building Lt. 1-5" required maxlength="100">
+            <label class="form-label">No. Telepon / WhatsApp <span style="color:#ef4444">*</span></label>
+            <input type="text" name="no_telp" value="<?= h($old['no_telp'] ?? '') ?>"
+                   class="form-input" placeholder="08xxxxxxxxxx" required maxlength="20">
         </div>
 
-        <div style="display:flex;gap:12px;">
+        <div style="display:flex;gap:12px;margin-top:8px;">
             <button type="submit" class="btn-primary">
-                <span class="mat-icon" style="font-size:18px">save</span> Simpan
+                <span class="mat-icon" style="font-size:18px">save</span> Simpan Staff
             </button>
             <a href="index.php" class="btn-secondary">Batal</a>
         </div>

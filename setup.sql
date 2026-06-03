@@ -1,5 +1,5 @@
 -- ============================================================
---  CariGalon — Database Setup Script
+--  CariGalon — Database Setup Script (ERD Redesign)
 --  Jalankan di phpMyAdmin atau MySQL CLI
 -- ============================================================
 
@@ -9,72 +9,82 @@ CREATE DATABASE IF NOT EXISTS carigalon
 
 USE carigalon;
 
--- ─── Tabel Staff ─────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS staff (
-    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nama        VARCHAR(100) NOT NULL,
-    no_hp       VARCHAR(20)  NOT NULL,
-    area_tugas  VARCHAR(100) NOT NULL,
-    status      ENUM('Aktif','Tidak Aktif') NOT NULL DEFAULT 'Aktif',
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+-- Drop tables in reverse dependency order if they exist
+DROP TABLE IF EXISTS refill_logs;
+DROP TABLE IF EXISTS staff_dispenser_assignment;
+DROP TABLE IF EXISTS water_report;
+DROP TABLE IF EXISTS dispenser;
+DROP TABLE IF EXISTS lokasi;
+DROP TABLE IF EXISTS reporter;
+DROP TABLE IF EXISTS maintenance_staff;
+
+-- ─── 1. Tabel Maintenance_Staff ──────────────────────────────────────
+CREATE TABLE maintenance_staff (
+    Staff_ID    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Nama        VARCHAR(100) NOT NULL,
+    Email       VARCHAR(100) NOT NULL,
+    No_Telp     VARCHAR(20)  NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ─── Tabel Dispensers ────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS dispensers (
-    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nama_lokasi VARCHAR(150) NOT NULL,
-    gedung      ENUM('Main Building','UC Tower','Gedung Lain') NOT NULL,
-    lantai      TINYINT UNSIGNED NOT NULL,
-    status      ENUM('Normal','Kosong','Rusak','Maintenance') NOT NULL DEFAULT 'Normal',
-    staff_id    INT UNSIGNED NULL,
-    catatan     TEXT NULL,
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE SET NULL
+-- ─── 2. Tabel Reporter ───────────────────────────────────────────────
+CREATE TABLE reporter (
+    Reporter_ID BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Nama        VARCHAR(100) NOT NULL,
+    Nim         VARCHAR(20)  NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ─── Tabel Galon (stok) ──────────────────────────────────────
-CREATE TABLE IF NOT EXISTS galon (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    dispenser_id    INT UNSIGNED NOT NULL,
-    jumlah_tersedia TINYINT UNSIGNED NOT NULL DEFAULT 0,
-    kapasitas_max   TINYINT UNSIGNED NOT NULL DEFAULT 5,
-    terakhir_diisi  DATETIME NULL,
-    catatan         TEXT NULL,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (dispenser_id) REFERENCES dispensers(id) ON DELETE CASCADE
+-- ─── 3. Tabel Lokasi ─────────────────────────────────────────────────
+CREATE TABLE lokasi (
+    Lokasi_ID   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Nama_Gedung VARCHAR(100) NOT NULL,
+    Lantai      INT NOT NULL,
+    Keterangan  VARCHAR(255) NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ─── Tabel Laporan ───────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS laporan (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    dispenser_id    INT UNSIGNED NOT NULL,
-    nama_pelapor    VARCHAR(100) NOT NULL,
-    kontak_pelapor  VARCHAR(100) NULL,
-    jenis_masalah   ENUM('Galon Kosong','Dispenser Rusak','Kebocoran','Distribusi Tidak Merata','Lainnya') NOT NULL,
-    deskripsi       TEXT NOT NULL,
-    status          ENUM('Pending','Diproses','Selesai','Ditolak') NOT NULL DEFAULT 'Pending',
-    staff_id        INT UNSIGNED NULL,
-    catatan_admin   TEXT NULL,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (dispenser_id) REFERENCES dispensers(id) ON DELETE CASCADE,
-    FOREIGN KEY (staff_id)    REFERENCES staff(id) ON DELETE SET NULL
+-- ─── 4. Tabel Dispenser ──────────────────────────────────────────────
+CREATE TABLE dispenser (
+    Dispenser_ID    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Lokasi_ID       BIGINT UNSIGNED NOT NULL,
+    Kode_Dispenser  VARCHAR(50) NOT NULL,
+    Kategori        ENUM('Normal', 'Hot & Cold', 'Hot, Cold & Normal') NOT NULL DEFAULT 'Normal',
+    FOREIGN KEY (Lokasi_ID) REFERENCES lokasi(Lokasi_ID) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ─── Tabel Refill Log ────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS refill_log (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    dispenser_id    INT UNSIGNED NOT NULL,
-    staff_id        INT UNSIGNED NULL,
-    jumlah_galon    TINYINT UNSIGNED NOT NULL DEFAULT 1,
-    tanggal_refill  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    catatan         TEXT NULL,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (dispenser_id) REFERENCES dispensers(id) ON DELETE CASCADE,
-    FOREIGN KEY (staff_id)     REFERENCES staff(id) ON DELETE SET NULL
+-- ─── 5. Tabel Water_Report ───────────────────────────────────────────
+CREATE TABLE water_report (
+    WaterReport_ID   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Reporter_ID      BIGINT UNSIGNED NOT NULL,
+    Dispenser_ID     BIGINT UNSIGNED NOT NULL,
+    Kategori         ENUM('Galon Kosong', 'Dispenser Rusak', 'Kebocoran', 'Distribusi Tidak Merata', 'Lainnya') NOT NULL,
+    Status           ENUM('Pending', 'Diproses', 'Selesai', 'Ditolak') NOT NULL DEFAULT 'Pending',
+    Deskripsi_Report VARCHAR(255) NOT NULL,
+    Foto_url         VARCHAR(255) NULL,
+    Reported_At      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    Resolved_At      DATETIME NULL,
+    FOREIGN KEY (Reporter_ID) REFERENCES reporter(Reporter_ID) ON DELETE CASCADE,
+    FOREIGN KEY (Dispenser_ID) REFERENCES dispenser(Dispenser_ID) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─── 6. Tabel Staff_Dispenser_Assignment ──────────────────────────────
+CREATE TABLE staff_dispenser_assignment (
+    Assignment_ID  BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Staff_ID       BIGINT UNSIGNED NOT NULL,
+    Dispenser_ID   BIGINT UNSIGNED NOT NULL,
+    WaterReport_ID BIGINT UNSIGNED NULL,
+    Status         ENUM('Pending', 'On Progress', 'Completed', 'Cancelled') NOT NULL DEFAULT 'Pending',
+    Created_At     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (Staff_ID) REFERENCES maintenance_staff(Staff_ID) ON DELETE CASCADE,
+    FOREIGN KEY (Dispenser_ID) REFERENCES dispenser(Dispenser_ID) ON DELETE CASCADE,
+    FOREIGN KEY (WaterReport_ID) REFERENCES water_report(WaterReport_ID) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─── 7. Tabel Refill_Logs ────────────────────────────────────────────
+CREATE TABLE refill_logs (
+    Logs_ID       BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    Assignment_ID BIGINT UNSIGNED NOT NULL,
+    Refill_At     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    Catatan       VARCHAR(255) NULL,
+    FOREIGN KEY (Assignment_ID) REFERENCES staff_dispenser_assignment(Assignment_ID) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -82,70 +92,53 @@ CREATE TABLE IF NOT EXISTS refill_log (
 --  SEED DATA — Data awal contoh
 -- ============================================================
 
--- Staff
-INSERT INTO staff (nama, no_hp, area_tugas, status) VALUES
-('Budi Santoso',    '08111234567', 'Main Building Lt. 1-5',  'Aktif'),
-('Agus Wahyudi',    '08119876543', 'Main Building Lt. 6-10', 'Aktif'),
-('Siti Rahayu',     '08221122334', 'UC Tower Lt. 1-5',       'Aktif'),
-('Deni Firmansyah', '08225566778', 'UC Tower Lt. 6-10',      'Aktif'),
-('Rina Kusuma',     '08119001234', 'Main Building Semua',    'Tidak Aktif');
+-- Maintenance Staff
+INSERT INTO maintenance_staff (Nama, Email, No_Telp) VALUES
+('Budi Santoso',    'budi.santoso@uc.ac.id',    '08111234567'),
+('Agus Wahyudi',    'agus.wahyudi@uc.ac.id',    '08119876543'),
+('Siti Rahayu',     'siti.rahayu@uc.ac.id',     '08221122334'),
+('Deni Firmansyah', 'deni.f@uc.ac.id',          '08225566778'),
+('Rina Kusuma',     'rina.kusuma@uc.ac.id',     '08119001234');
 
--- Dispensers — Main Building
-INSERT INTO dispensers (nama_lokasi, gedung, lantai, status, staff_id, catatan) VALUES
-('Lobby Utama Main Building',   'Main Building', 1,  'Normal',      1, NULL),
-('Koridor Selatan Lt. 1',       'Main Building', 1,  'Normal',      1, NULL),
-('Dekat Kantin Lt. 2',          'Main Building', 2,  'Kosong',      1, 'Perlu diisi ulang segera'),
-('Ruang Baca Lt. 2',            'Main Building', 2,  'Normal',      1, NULL),
-('Depan Lift Lt. 3',            'Main Building', 3,  'Normal',      2, NULL),
-('Koridor Timur Lt. 3',         'Main Building', 3,  'Rusak',       2, 'Bocor di bagian keran panas'),
-('Area Printer Lt. 4',          'Main Building', 4,  'Normal',      2, NULL),
-('Lounge Mahasiswa Lt. 4',      'Main Building', 4,  'Normal',      2, NULL),
-('Depan Lab Komputer Lt. 5',    'Main Building', 5,  'Maintenance', 2, 'Sedang diservis'),
-('Koridor Barat Lt. 5',         'Main Building', 5,  'Normal',      2, NULL),
--- Dispensers — UC Tower
-('Lobby UC Tower',              'UC Tower',      1,  'Normal',      3, NULL),
-('Dekat Resepsionis UC Tower',  'UC Tower',      1,  'Kosong',      3, NULL),
-('Area Tunggu Lt. 2 UC Tower',  'UC Tower',      2,  'Normal',      3, NULL),
-('Koridor Utara Lt. 3 UC Tower','UC Tower',      3,  'Normal',      4, NULL),
-('Depan Ruang Rapat Lt. 4',     'UC Tower',      4,  'Rusak',       4, 'Keran macet'),
-('Lounge Lt. 5 UC Tower',       'UC Tower',      5,  'Normal',      4, NULL);
+-- Reporters
+INSERT INTO reporter (Nama, Nim) VALUES
+('Ahmad Rizki',    '0706012110001'),
+('Dewi Sartika',   '0706012110002'),
+('Benny Kurniawan','0706012110003'),
+('Maya Putri',     '0706012110004'),
+('Reza Firmansyah','0706012110005');
 
--- Galon stok awal
-INSERT INTO galon (dispenser_id, jumlah_tersedia, kapasitas_max, terakhir_diisi) VALUES
-(1,  4, 5, NOW() - INTERVAL 1 DAY),
-(2,  3, 5, NOW() - INTERVAL 2 DAY),
-(3,  0, 5, NOW() - INTERVAL 5 DAY),
-(4,  5, 5, NOW()),
-(5,  2, 5, NOW() - INTERVAL 3 DAY),
-(6,  1, 5, NOW() - INTERVAL 4 DAY),
-(7,  4, 5, NOW() - INTERVAL 1 DAY),
-(8,  5, 5, NOW()),
-(9,  2, 5, NOW() - INTERVAL 2 DAY),
-(10, 3, 5, NOW() - INTERVAL 1 DAY),
-(11, 4, 5, NOW()),
-(12, 0, 5, NOW() - INTERVAL 6 DAY),
-(13, 3, 5, NOW() - INTERVAL 1 DAY),
-(14, 5, 5, NOW()),
-(15, 1, 5, NOW() - INTERVAL 3 DAY),
-(16, 4, 5, NOW() - INTERVAL 2 DAY);
+-- Lokasi
+INSERT INTO lokasi (Nama_Gedung, Lantai, Keterangan) VALUES
+('Main Building', 1, 'Lobby Utama samping Resepsionis'),
+('Main Building', 2, 'Dekat Kantin area barat'),
+('Main Building', 3, 'Koridor timur dekat Lab Komputer'),
+('UC Tower',      1, 'Lobby Tower UC'),
+('UC Tower',      4, 'Dekat Ruang Rapat Lt. 4');
 
--- Laporan
-INSERT INTO laporan (dispenser_id, nama_pelapor, kontak_pelapor, jenis_masalah, deskripsi, status, staff_id) VALUES
-(3,  'Ahmad Rizki',    'ahmad.rizki@student.ciputra.ac.id',  'Galon Kosong',           'Galon di dekat kantin sudah kosong sejak kemarin sore, tolong diisi',       'Diproses', 1),
-(6,  'Dewi Sartika',   'dewi.sartika@student.ciputra.ac.id', 'Kebocoran',              'Air menetes dari keran panas dispenser koridor timur lt 3',                  'Pending',  NULL),
-(15, 'Benny Kurniawan','benny@student.ciputra.ac.id',        'Dispenser Rusak',        'Keran dispenser UC Tower lt 4 tidak bisa dibuka sama sekali',               'Diproses', 4),
-(12, 'Maya Putri',     '0812-9988-7766',                     'Galon Kosong',           'Dispenser lobby UC Tower sudah kosong 2 hari, padahal banyak yang pakai',    'Selesai',  3),
-(5,  'Reza Firmansyah','reza.f@student.ciputra.ac.id',       'Distribusi Tidak Merata','Lt 3 Main Building cuma ada 1 dispenser yang jalan, yang lain kosong terus', 'Pending',  NULL);
+-- Dispenser
+INSERT INTO dispenser (Lokasi_ID, Kode_Dispenser, Kategori) VALUES
+(1, 'DISP-MB-101', 'Hot & Cold'),
+(2, 'DISP-MB-201', 'Normal'),
+(3, 'DISP-MB-301', 'Hot, Cold & Normal'),
+(4, 'DISP-UCT-101', 'Hot & Cold'),
+(5, 'DISP-UCT-401', 'Normal');
 
--- Refill Log
-INSERT INTO refill_log (dispenser_id, staff_id, jumlah_galon, tanggal_refill, catatan) VALUES
-(1,  1, 3, NOW() - INTERVAL 1 DAY,  NULL),
-(4,  1, 5, NOW(),                   'Isi penuh'),
-(7,  2, 2, NOW() - INTERVAL 1 DAY,  NULL),
-(8,  2, 5, NOW(),                   'Isi penuh'),
-(11, 3, 4, NOW(),                   NULL),
-(14, 4, 5, NOW(),                   'Isi penuh'),
-(12, 3, 4, NOW() - INTERVAL 6 DAY,  NULL),
-(3,  1, 0, NOW() - INTERVAL 5 DAY,  'Stok habis, belum bisa diisi'),
-(13, 3, 3, NOW() - INTERVAL 1 DAY,  NULL),
-(16, 4, 4, NOW() - INTERVAL 2 DAY,  NULL);
+-- Water Report
+INSERT INTO water_report (Reporter_ID, Dispenser_ID, Kategori, Status, Deskripsi_Report, Foto_url, Reported_At, Resolved_At) VALUES
+(1, 2, 'Galon Kosong',           'Diproses', 'Galon di dekat kantin sudah kosong sejak kemarin sore', NULL, NOW() - INTERVAL 1 DAY, NULL),
+(2, 3, 'Kebocoran',              'Pending',  'Air menetes dari keran panas dispenser koridor timur lt 3', NULL, NOW() - INTERVAL 12 HOUR, NULL),
+(3, 5, 'Dispenser Rusak',        'Diproses', 'Keran dispenser UC Tower lt 4 tidak bisa dibuka sama sekali', NULL, NOW() - INTERVAL 2 DAY, NULL),
+(4, 4, 'Galon Kosong',           'Selesai',  'Dispenser lobby UC Tower kosong sejak pagi', NULL, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 2 DAY),
+(5, 1, 'Distribusi Tidak Merata','Pending',  'Tekanan air sangat rendah pada keran dingin', NULL, NOW() - INTERVAL 3 HOUR, NULL);
+
+-- Staff Dispenser Assignment
+INSERT INTO staff_dispenser_assignment (Staff_ID, Dispenser_ID, WaterReport_ID, Status, Created_At) VALUES
+(1, 2, 1, 'On Progress', NOW() - INTERVAL 18 HOUR),
+(3, 4, 4, 'Completed',   NOW() - INTERVAL 2 DAY),
+(4, 5, 3, 'On Progress', NOW() - INTERVAL 1 DAY),
+(2, 3, 2, 'Pending',     NOW() - INTERVAL 6 HOUR);
+
+-- Refill Logs
+INSERT INTO refill_logs (Assignment_ID, Refill_At, Catatan) VALUES
+(2, NOW() - INTERVAL 2 DAY, 'Pengisian ulang 2 galon selesai');

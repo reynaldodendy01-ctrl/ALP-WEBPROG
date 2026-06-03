@@ -1,13 +1,75 @@
 <?php
 require_once __DIR__ . '/db.php';
 
+// Handle public report submission
+$report_success = null;
+$report_error = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
+    $nama = trim($_POST['nama'] ?? '');
+    $nim = trim($_POST['nim'] ?? '');
+    $dispenser_id = intval($_POST['dispenser_id'] ?? 0);
+    $kategori = $_POST['kategori'] ?? '';
+    $deskripsi = trim($_POST['deskripsi'] ?? '');
+    $foto_url = trim($_POST['foto_url'] ?? '');
+
+    if (!$nama || !$nim || !$dispenser_id || !$kategori || !$deskripsi) {
+        $report_error = "Semua field bertanda * wajib diisi.";
+    } else {
+        try {
+            $pdo->beginTransaction();
+
+            // Find or insert reporter
+            $stmt = $pdo->prepare("SELECT Reporter_ID FROM reporter WHERE Nim = :nim");
+            $stmt->execute([':nim' => $nim]);
+            $reporter_id = $stmt->fetchColumn();
+
+            if (!$reporter_id) {
+                $stmt = $pdo->prepare("INSERT INTO reporter (Nama, Nim) VALUES (:nama, :nim)");
+                $stmt->execute([':nama' => $nama, ':nim' => $nim]);
+                $reporter_id = $pdo->lastInsertId();
+            } else {
+                $stmt = $pdo->prepare("UPDATE reporter SET Nama = :nama WHERE Reporter_ID = :reporter_id");
+                $stmt->execute([':nama' => $nama, ':reporter_id' => $reporter_id]);
+            }
+
+            // Insert water report
+            $stmt = $pdo->prepare("
+                INSERT INTO water_report (Reporter_ID, Dispenser_ID, Kategori, Status, Deskripsi_Report, Foto_url, Reported_At)
+                VALUES (:reporter_id, :dispenser_id, :kategori, 'Pending', :deskripsi, :foto_url, NOW())
+            ");
+            $stmt->execute([
+                ':reporter_id' => $reporter_id,
+                ':dispenser_id' => $dispenser_id,
+                ':kategori' => $kategori,
+                ':deskripsi' => $deskripsi,
+                ':foto_url' => $foto_url ?: null
+            ]);
+
+            $pdo->commit();
+            $report_success = "Laporan berhasil dikirim! Staff kami akan segera menindaklanjuti.";
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $report_error = "Gagal mengirim laporan: " . $e->getMessage();
+        }
+    }
+}
+
 // Fetch dynamic stats for landing page
 try {
-    $total_dispensers = $pdo->query("SELECT COUNT(*) FROM dispensers")->fetchColumn();
-    $total_gedung = $pdo->query("SELECT COUNT(DISTINCT gedung) FROM dispensers")->fetchColumn();
+    $total_dispensers = $pdo->query("SELECT COUNT(*) FROM dispenser")->fetchColumn();
+    $total_gedung = $pdo->query("SELECT COUNT(DISTINCT Nama_Gedung) FROM lokasi")->fetchColumn();
+    
+    // Fetch dispensers list for reporting form dropdown
+    $dispensersList = $pdo->query("
+        SELECT d.Dispenser_ID, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai 
+        FROM dispenser d 
+        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID 
+        ORDER BY l.Nama_Gedung, l.Lantai, d.Kode_Dispenser
+    ")->fetchAll();
 } catch (PDOException $e) {
-    $total_dispensers = 16; // Fallbacks in case database is not set up yet
+    $total_dispensers = 5; 
     $total_gedung = 2;
+    $dispensersList = [];
 }
 ?>
 <!DOCTYPE html>
@@ -291,7 +353,7 @@ try {
                         <span class="material-symbols-outlined text-[20px]">water_drop</span> Cek Status Dispenser
                     </a>
 
-                    <a href="laporan/create.php"
+                    <a href="#buat-laporan"
                         class="bg-white border border-outline-variant text-on-surface px-10 py-5 rounded-full hover:border-primary/30 hover:-translate-y-1 active:scale-95 transition-all font-semibold min-w-[220px] inline-flex items-center justify-center gap-2">
                         <span class="material-symbols-outlined text-[20px]">edit_note</span> Buat Laporan Kerusakan
                     </a>
@@ -485,6 +547,98 @@ try {
 
             </div>
 
+        </section>
+
+        <!-- REPORT SECTION -->
+        <section id="buat-laporan" class="max-w-container mx-auto px-6 lg:px-16 mt-32 scroll-mt-24">
+            <div class="card p-8 md:p-12 bg-gradient-to-br from-white to-blue-50/50 shadow-xl border border-blue-100 rounded-3xl">
+                <div class="max-w-3xl mx-auto">
+                    <div class="text-center mb-10">
+                        <span class="text-xs uppercase tracking-[0.2em] font-bold text-primary">Laporkan Kendala</span>
+                        <h2 class="text-3xl md:text-4xl font-extrabold text-on-surface mt-2 mb-4">Buat Laporan Kerusakan / Masalah</h2>
+                        <p class="text-on-surface-variant text-sm md:text-base leading-relaxed">
+                            Menemukan dispenser yang bocor, rusak, atau galon kosong? Laporkan di bawah ini, dan tim maintenance kami akan segera datang memperbaikinya.
+                        </p>
+                    </div>
+
+                    <?php if ($report_success): ?>
+                        <div class="flex items-center gap-3 px-5 py-4 mb-6 rounded-2xl border bg-emerald-50 border-emerald-300 text-emerald-800 text-sm font-medium">
+                            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                            <span><?= htmlspecialchars($report_success) ?></span>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($report_error): ?>
+                        <div class="flex items-center gap-3 px-5 py-4 mb-6 rounded-2xl border bg-red-50 border-red-300 text-red-800 text-sm font-medium">
+                            <span class="material-symbols-outlined text-[20px]">error</span>
+                            <span><?= htmlspecialchars($report_error) ?></span>
+                        </div>
+                    <?php endif; ?>
+
+                    <form method="POST" action="index.php#buat-laporan" class="space-y-6">
+                        <input type="hidden" name="submit_report" value="1">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-on-surface mb-2" for="nama">Nama Pelapor <span class="text-red-500">*</span></label>
+                                <input class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                                       type="text" id="nama" name="nama" placeholder="Ketik nama Anda…" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-on-surface mb-2" for="nim">NIM Pelapor <span class="text-red-500">*</span></label>
+                                <input class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                                       type="text" id="nim" name="nim" placeholder="Ketik NIM Anda…" required>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-on-surface mb-2" for="dispenser_id">Pilih Dispenser <span class="text-red-500">*</span></label>
+                                <select class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer" 
+                                        id="dispenser_id" name="dispenser_id" required>
+                                    <option value="">— Pilih Lokasi Dispenser —</option>
+                                    <?php foreach ($dispensersList as $d): ?>
+                                        <option value="<?= $d['Dispenser_ID'] ?>">
+                                            <?= htmlspecialchars($d['Nama_Gedung']) ?> (Lt. <?= htmlspecialchars($d['Lantai']) ?>) - <?= htmlspecialchars($d['Kode_Dispenser']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-on-surface mb-2" for="kategori">Kategori Masalah <span class="text-red-500">*</span></label>
+                                <select class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer" 
+                                        id="kategori" name="kategori" required>
+                                    <option value="">— Pilih Kategori Masalah —</option>
+                                    <option value="Galon Kosong">Galon Kosong</option>
+                                    <option value="Dispenser Rusak">Dispenser Rusak</option>
+                                    <option value="Kebocoran">Kebocoran</option>
+                                    <option value="Distribusi Tidak Merata">Distribusi Tidak Merata</option>
+                                    <option value="Lainnya">Lainnya</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-on-surface mb-2" for="foto_url">URL Foto Pendukung (Opsional)</label>
+                            <input class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                                   type="url" id="foto_url" name="foto_url" placeholder="https://example.com/foto.jpg">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-on-surface mb-2" for="deskripsi">Deskripsi Kendala <span class="text-red-500">*</span></label>
+                            <textarea class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none h-28" 
+                                      id="deskripsi" name="deskripsi" placeholder="Detail kendala yang dialami dispenser…" required></textarea>
+                        </div>
+
+                        <div class="text-center pt-4">
+                            <button type="submit" 
+                                    class="bg-primary text-white text-sm font-semibold px-10 py-4 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer">
+                                <span class="material-symbols-outlined text-[18px]">send</span> Kirim Laporan Sekarang
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </section>
 
     </main>
