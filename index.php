@@ -1,3 +1,15 @@
+<?php
+require_once __DIR__ . '/db.php';
+
+// Fetch dynamic stats for landing page
+try {
+    $total_dispensers = $pdo->query("SELECT COUNT(*) FROM dispensers")->fetchColumn();
+    $total_gedung = $pdo->query("SELECT COUNT(DISTINCT gedung) FROM dispensers")->fetchColumn();
+} catch (PDOException $e) {
+    $total_dispensers = 16; // Fallbacks in case database is not set up yet
+    $total_gedung = 2;
+}
+?>
 <!DOCTYPE html>
 <html class="light" lang="id">
 
@@ -6,11 +18,11 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
     <title>CariGalon - Pantau & Kelola Air Kampus UC</title>
+    <meta name="description" content="Platform real-time memantau status galon, melaporkan kerusakan dispenser, dan memastikan distribusi air merata di Universitas Ciputra.">
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
     <script>
@@ -195,25 +207,25 @@
 
             <div class="flex items-center gap-12">
 
-                <div class="text-3xl font-black tracking-tight text-primary cursor-pointer">
+                <div class="text-3xl font-black tracking-tight text-primary cursor-pointer" onclick="location.href='#'">
                     CariGalon
                 </div>
 
                 <nav class="hidden md:flex items-center gap-8">
-                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">
-                        Fitur
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#features">
+                        Fitur Utama
                     </a>
 
-                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">
-                        Cara Kerja
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="dispensers/index.php">
+                        Daftar Dispenser
                     </a>
 
-                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">
-                        Peta Dispenser
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="galon/index.php">
+                        Stok Galon
                     </a>
 
-                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">
-                        Laporan
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="laporan/index.php">
+                        Laporan Masalah
                     </a>
                 </nav>
 
@@ -221,14 +233,14 @@
 
             <div class="flex items-center gap-6">
 
-                <button class="hidden md:block text-sm text-on-surface-variant hover:text-primary transition-colors">
-                    Login
-                </button>
+                <a href="dashboard/index.php" class="hidden md:block text-sm text-on-surface-variant hover:text-primary transition-colors font-medium">
+                    Dashboard Admin
+                </a>
 
-                <button
-                    class="bg-primary text-white text-sm font-semibold px-6 py-3 rounded-full hover:shadow-lg active:scale-95 transition-all">
-                    Lihat Status
-                </button>
+                <a href="dashboard/index.php"
+                    class="bg-primary text-white text-sm font-semibold px-6 py-3 rounded-full hover:shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-center">
+                    Masuk Platform
+                </a>
 
             </div>
 
@@ -274,15 +286,15 @@
                 <!-- Buttons -->
                 <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16">
 
-                    <button
-                        class="bg-primary text-white px-10 py-5 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 transition-all font-semibold min-w-[220px]">
-                        Cek Peta Dispenser
-                    </button>
+                    <a href="dispensers/index.php"
+                        class="bg-primary text-white px-10 py-5 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 transition-all font-semibold min-w-[220px] inline-flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">water_drop</span> Cek Status Dispenser
+                    </a>
 
-                    <button
-                        class="bg-white border border-outline-variant text-on-surface px-10 py-5 rounded-full hover:border-primary/30 hover:-translate-y-1 active:scale-95 transition-all font-semibold min-w-[220px]">
-                        Buat Laporan
-                    </button>
+                    <a href="laporan/create.php"
+                        class="bg-white border border-outline-variant text-on-surface px-10 py-5 rounded-full hover:border-primary/30 hover:-translate-y-1 active:scale-95 transition-all font-semibold min-w-[220px] inline-flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[20px]">edit_note</span> Buat Laporan Kerusakan
+                    </a>
 
                 </div>
 
@@ -305,13 +317,13 @@
             <div class="stats-bar ambient-shadow">
 
                 <div class="stat-item">
-                    <div class="stat-num">24</div>
+                    <div class="stat-num"><?= htmlspecialchars($total_dispensers) ?></div>
                     <div class="stat-label">Dispenser Terpantau</div>
                 </div>
 
                 <div class="stat-item">
-                    <div class="stat-num">2</div>
-                    <div class="stat-label">Gedung</div>
+                    <div class="stat-num"><?= htmlspecialchars($total_gedung) ?></div>
+                    <div class="stat-label">Gedung Dipetakan</div>
                 </div>
 
                 <div class="stat-item">
@@ -329,7 +341,7 @@
         </section>
 
         <!-- FEATURES -->
-        <section class="max-w-container mx-auto px-6 lg:px-16 fade-in">
+        <section id="features" class="max-w-container mx-auto px-6 lg:px-16 fade-in scroll-mt-24">
 
             <div class="mb-3">
                 <span class="text-xs uppercase tracking-[0.2em] font-bold text-primary">
@@ -354,8 +366,8 @@
             <div class="bento-grid">
 
                 <!-- A -->
-                <div
-                    class="bento-a bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+                <div onclick="location.href='dispensers/index.php'"
+                    class="bento-a bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
                         class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
@@ -379,8 +391,8 @@
                 </div>
 
                 <!-- B -->
-                <div
-                    class="bento-b bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+                <div onclick="location.href='galon/index.php'"
+                    class="bento-b bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
                         class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
@@ -392,19 +404,19 @@
                     </div>
 
                     <h3 class="text-3xl font-bold mb-4">
-                        Analitik Konsumsi Air
+                        Stok Galon & Analitik
                     </h3>
 
                     <p class="text-on-surface-variant leading-relaxed">
-                        Visualisasi tren refill dan laporan per lantai membantu
-                        manajemen kampus membuat keputusan distribusi yang lebih tepat.
+                        Pantau tingkat ketersediaan air pada dispenser dan pastikan pasokan air tidak pernah habis
+                        dengan progress bar persentase stok visual.
                     </p>
 
                 </div>
 
                 <!-- C -->
-                <div
-                    class="bento-c bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+                <div onclick="location.href='laporan/create.php'"
+                    class="bento-c bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
                         class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
@@ -420,14 +432,14 @@
                     </h3>
 
                     <p class="text-on-surface-variant leading-relaxed">
-                        Mahasiswa bisa langsung melaporkan dispenser rusak hanya dalam beberapa ketukan.
+                        Mahasiswa dan staff bisa langsung melaporkan dispenser rusak atau bocor hanya dalam beberapa ketukan.
                     </p>
 
                 </div>
 
                 <!-- D -->
-                <div
-                    class="bento-d bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+                <div onclick="location.href='staff/index.php'"
+                    class="bento-d bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
                         class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
@@ -443,30 +455,30 @@
                     </h3>
 
                     <p class="text-on-surface-variant leading-relaxed">
-                        Assign maintenance staff ke dispenser tertentu dengan mudah dan lacak statusnya.
+                        Tugaskan staff pemeliharaan ke dispenser tertentu dengan mudah dan pantau performa kerjanya.
                     </p>
 
                 </div>
 
                 <!-- E -->
-                <div
-                    class="bento-e bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 transition-all group p-10">
+                <div onclick="location.href='refill/index.php'"
+                    class="bento-e bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
                         class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
 
                         <span class="material-symbols-outlined text-[32px]">
-                            map
+                            recycling
                         </span>
 
                     </div>
 
                     <h3 class="text-2xl font-bold mb-4">
-                        Peta Lantai
+                        Riwayat Refill
                     </h3>
 
                     <p class="text-on-surface-variant leading-relaxed">
-                        Temukan dispenser terdekat menggunakan peta interaktif per gedung dan lantai.
+                        Catat log setiap pengisian ulang galon air secara lengkap beserta volume dan penanggung jawabnya.
                     </p>
 
                 </div>
@@ -505,19 +517,19 @@
                     <ul class="flex flex-col gap-4">
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
-                                Dashboard
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="dashboard/index.php">
+                                Dashboard Admin
                             </a>
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="dispensers/index.php">
                                 Peta Dispenser
                             </a>
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="laporan/create.php">
                                 Buat Laporan
                             </a>
                         </li>
@@ -529,26 +541,26 @@
                 <div>
 
                     <h4 class="text-sm font-bold uppercase tracking-widest mb-6">
-                        Pengguna
+                        Navigasi Cepat
                     </h4>
 
                     <ul class="flex flex-col gap-4">
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
-                                Mahasiswa
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="galon/index.php">
+                                Stok Galon
                             </a>
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
-                                Staff
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="staff/index.php">
+                                Manajemen Staff
                             </a>
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#">
-                                Admin
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="refill/index.php">
+                                Riwayat Refill
                             </a>
                         </li>
 
@@ -562,7 +574,7 @@
                 class="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-outline-variant/20 gap-6">
 
                 <p class="text-on-surface-variant opacity-60 text-sm">
-                    © 2025 CariGalon — Universitas Ciputra.
+                    © 2026 CariGalon — Universitas Ciputra.
                 </p>
 
                 <div class="flex gap-8 text-sm">
