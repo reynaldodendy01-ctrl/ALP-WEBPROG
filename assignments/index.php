@@ -20,7 +20,7 @@ if (!empty($_GET['staff_id'])) {
 
 $stmt = $pdo->prepare("
     SELECT a.*, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai,
-           wr.Kategori AS kategori_laporan, wr.Deskripsi_Report,
+           wr.Kategori AS kategori_laporan, wr.Deskripsi_Report, wr.Foto_url,
            (SELECT COUNT(*) FROM refill_logs rl WHERE rl.Assignment_ID = a.Assignment_ID) AS total_refills
     FROM staff_dispenser_assignment a
     JOIN maintenance_staff ms ON a.Staff_ID = ms.Staff_ID
@@ -121,8 +121,17 @@ include __DIR__ . '/../_partials/layout_head.php';
                 </td>
                 <td>
                     <?php if ($a['WaterReport_ID']): ?>
-                        <div style="font-size:.8rem;font-weight:600;color:#c2410c;">[WR #<?= $a['WaterReport_ID'] ?>] <?= h($a['kategori_laporan']) ?></div>
-                        <div style="font-size:.75rem;color:#6b7280;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= h($a['Deskripsi_Report']) ?></div>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <?php if ($a['Foto_url']): ?>
+                                <a href="<?= h(get_foto_url($a['Foto_url'])) ?>" target="_blank" style="flex-shrink:0;">
+                                    <img src="<?= h(get_foto_url($a['Foto_url'])) ?>" alt="Foto" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;display:block;" class="hover:scale-105 transition-all">
+                                </a>
+                            <?php endif; ?>
+                            <div>
+                                <div style="font-size:.8rem;font-weight:600;color:#c2410c;">[WR #<?= $a['WaterReport_ID'] ?>] <?= h($a['kategori_laporan']) ?></div>
+                                <div style="font-size:.75rem;color:#6b7280;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="<?= h($a['Deskripsi_Report']) ?>"><?= h($a['Deskripsi_Report']) ?></div>
+                            </div>
+                        </div>
                     <?php else: ?>
                         <span style="color:#9ca3af;font-size:.8rem;">Routine / Mandiri</span>
                     <?php endif; ?>

@@ -1,6 +1,23 @@
 <?php
 require_once __DIR__ . '/../db.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Enforce authentication
+if (!isset($_SESSION['staff_logged_in']) || $_SESSION['staff_logged_in'] !== true) {
+    header('Location: ../login.php');
+    exit;
+}
+
+// Enforce admin-only access for editing reports
+if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
+    set_flash('error', 'Akses ditolak: Hanya Super Admin yang dapat mengubah data laporan secara langsung.');
+    header('Location: index.php');
+    exit;
+}
+
 $pageTitle  = 'Edit Laporan';
 $activeMenu = 'laporan';
 define('ROOT', dirname(__DIR__));
@@ -36,7 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $kategori         = $_POST['kategori'] ?? '';
     $status           = $_POST['status'] ?? 'Pending';
     $deskripsi_report = trim($_POST['deskripsi_report'] ?? '');
-    $foto_url         = trim($_POST['foto_url'] ?? '');
 
     // Validation
     if (!$reporter_id) {
@@ -53,6 +69,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!$deskripsi_report) {
         $errors[] = 'Deskripsi kendala wajib diisi.';
+    }
+
+    $foto_url = $report['Foto_url'];
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+        $fileTmpPath = $_FILES['foto']['tmp_name'];
+        $fileName = $_FILES['foto']['name'];
+        $fileSize = $_FILES['foto']['size'];
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        if (!in_array($fileExtension, $allowedExtensions)) {
+            $errors[] = "Ekstensi file tidak valid. Diperbolehkan: JPG, JPEG, PNG, GIF.";
+        } elseif ($fileSize > 5 * 1024 * 1024) {
+            $errors[] = "Ukuran file terlalu besar. Maksimum 5MB.";
+        } else {
+            $uploadFileDir = ROOT . '/uploads/';
+            if (!is_dir($uploadFileDir)) {
+                mkdir($uploadFileDir, 0777, true);
+            }
+            $newFileName = md5(uniqid(time(), true)) . '.' . $fileExtension;
+            $dest_path = $uploadFileDir . $newFileName;
+
+            if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                // Delete old local file if exists
+                if ($report['Foto_url'] && file_exists(ROOT . '/' . $report['Foto_url'])) {
+                    @unlink(ROOT . '/' . $report['Foto_url']);
+                }
+                $foto_url = 'uploads/' . $newFileName;
+            } else {
+                $errors[] = "Gagal mengunggah foto. Silakan coba lagi.";
+            }
+        }
+    } elseif (isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $errors[] = "Terjadi kesalahan pada file upload: Kode " . $_FILES['foto']['error'];
     }
 
     if (empty($errors)) {
@@ -77,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':kategori'         => $kategori,
                 ':status'           => $status,
                 ':deskripsi_report' => $deskripsi_report,
-                ':foto_url'         => $foto_url ?: null,
+                ':foto_url'         => $foto_url,
                 ':resolved_at'      => $resolved_at,
                 ':id'               => $id,
             ]);
@@ -115,7 +165,7 @@ include __DIR__ . '/../_partials/layout_head.php';
 
 <div style="display:grid;grid-template-columns: 2fr 1fr;gap:1.5rem;align-items:start;">
 <div class="card" style="padding:32px;">
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         <div class="form-group">
             <label class="form-label">Pelapor <span style="color:#ef4444">*</span></label>
             <select name="reporter_id" class="form-select" required>
@@ -161,9 +211,8 @@ include __DIR__ . '/../_partials/layout_head.php';
         </div>
 
         <div class="form-group">
-            <label class="form-label">URL Foto Pendukung (Opsional)</label>
-            <input type="url" name="foto_url" value="<?= h($old['Foto_url'] ?? ($old['foto_url'] ?? '')) ?>"
-                   class="form-input" placeholder="https://example.com/foto-rusak.jpg">
+            <label class="form-label">Upload Foto Pendukung Baru (Opsional)</label>
+            <input type="file" name="foto" accept="image/*" class="form-input">
         </div>
 
         <div class="form-group">
@@ -185,7 +234,7 @@ include __DIR__ . '/../_partials/layout_head.php';
     <?php if (!empty($report['Foto_url'])): ?>
     <div class="card" style="padding:20px;">
         <div style="font-weight:700;color:#0b1f3a;margin-bottom:12px;">Foto Lampiran</div>
-        <img src="<?= h($report['Foto_url']) ?>" alt="Foto kendala" style="width:100%;height:auto;border-radius:10px;border:1px solid #e5e7eb;max-height:220px;object-fit:cover;">
+        <img src="<?= h(get_foto_url($report['Foto_url'])) ?>" alt="Foto kendala" style="width:100%;height:auto;border-radius:10px;border:1px solid #e5e7eb;max-height:220px;object-fit:cover;">
     </div>
     <?php endif; ?>
 

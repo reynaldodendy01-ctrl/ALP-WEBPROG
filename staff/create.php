@@ -11,9 +11,11 @@ $old    = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
 
-    $nama    = trim($_POST['nama'] ?? '');
-    $email   = trim($_POST['email'] ?? '');
-    $no_telp = trim($_POST['no_telp'] ?? '');
+    $nama     = trim($_POST['nama'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $no_telp  = trim($_POST['no_telp'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $role     = $_POST['role'] ?? 'Staff';
 
     if (!$nama) {
         $errors[] = 'Nama staff wajib diisi.';
@@ -26,17 +28,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$no_telp) {
         $errors[] = 'No. telepon wajib diisi.';
     }
+    if (!$password) {
+        $errors[] = 'Password wajib diisi.';
+    } elseif (strlen($password) < 6) {
+        $errors[] = 'Password minimal 6 karakter.';
+    }
+    if (!in_array($role, ['Staff', 'Admin'])) {
+        $errors[] = 'Role tidak valid.';
+    }
 
     if (empty($errors)) {
         try {
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("
-                INSERT INTO maintenance_staff (Nama, Email, No_Telp)
-                VALUES (:nama, :email, :no_telp)
+                INSERT INTO maintenance_staff (Nama, Email, No_Telp, Password, Role)
+                VALUES (:nama, :email, :no_telp, :password, :role)
             ");
             $stmt->execute([
-                ':nama'    => $nama,
-                ':email'   => $email,
-                ':no_telp' => $no_telp,
+                ':nama'     => $nama,
+                ':email'    => $email,
+                ':no_telp'  => $no_telp,
+                ':password' => $hashedPassword,
+                ':role'     => $role,
             ]);
 
             set_flash('success', "Staff \"$nama\" berhasil ditambahkan!");
@@ -89,6 +102,20 @@ include __DIR__ . '/../_partials/layout_head.php';
             <label class="form-label">No. Telepon / WhatsApp <span style="color:#ef4444">*</span></label>
             <input type="text" name="no_telp" value="<?= h($old['no_telp'] ?? '') ?>"
                    class="form-input" placeholder="08xxxxxxxxxx" required maxlength="20">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Password <span style="color:#ef4444">*</span></label>
+            <input type="password" name="password" class="form-input" 
+                   placeholder="Password untuk login staff (min. 6 karakter)" required minlength="6">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Role Akses <span style="color:#ef4444">*</span></label>
+            <select name="role" class="form-select" required>
+                <option value="Staff" <?= ($old['role'] ?? 'Staff') === 'Staff' ? 'selected' : '' ?>>Staff Maintenance</option>
+                <option value="Admin" <?= ($old['role'] ?? '') === 'Admin' ? 'selected' : '' ?>>Super Admin</option>
+            </select>
         </div>
 
         <div style="display:flex;gap:12px;margin-top:8px;">

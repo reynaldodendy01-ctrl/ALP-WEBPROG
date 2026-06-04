@@ -96,6 +96,7 @@ include __DIR__ . '/../_partials/layout_head.php';
                 <th>Dispenser / Lokasi</th>
                 <th>Masalah</th>
                 <th>Deskripsi</th>
+                <th>Foto</th>
                 <th>Status</th>
                 <th>Ditugaskan Ke</th>
                 <th>Waktu Laporan</th>
@@ -105,7 +106,7 @@ include __DIR__ . '/../_partials/layout_head.php';
         <tbody>
         <?php if (empty($reports)): ?>
             <tr>
-                <td colspan="9" style="text-align:center;color:#9ca3af;padding:48px;">
+                <td colspan="10" style="text-align:center;color:#9ca3af;padding:48px;">
                     <span class="mat-icon" style="font-size:48px;display:block;margin-bottom:8px;">report</span>
                     Tidak ada laporan kendala ditemukan
                 </td>
@@ -131,6 +132,15 @@ include __DIR__ . '/../_partials/layout_head.php';
                 </td>
                 <td><span class="badge badge-orange"><?= h($r['Kategori']) ?></span></td>
                 <td style="font-size:.82rem;max-width:240px;word-wrap:break-word;white-space:normal;"><?= h($r['Deskripsi_Report']) ?></td>
+                <td>
+                    <?php if ($r['Foto_url']): ?>
+                        <a href="<?= h(get_foto_url($r['Foto_url'])) ?>" target="_blank">
+                            <img src="<?= h(get_foto_url($r['Foto_url'])) ?>" alt="Foto" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;" class="hover:scale-105 transition-all">
+                        </a>
+                    <?php else: ?>
+                        <span style="color:#9ca3af">—</span>
+                    <?php endif; ?>
+                </td>
                 <td><span class="badge <?= $statusBadge ?>"><?= h($r['Status']) ?></span></td>
                 <td style="font-size:.85rem;font-weight:500;color:#0b1f3a;"><?= h($r['assigned_staff'] ?? '—') ?></td>
                 <td style="font-size:.78rem;color:#9ca3af;white-space:nowrap;">
@@ -141,15 +151,41 @@ include __DIR__ . '/../_partials/layout_head.php';
                 </td>
                 <td>
                     <div style="display:flex;gap:6px;align-items:center;">
-                        <a href="edit.php?id=<?= $r['WaterReport_ID'] ?>" class="btn-edit" title="Edit Laporan / Status">
-                            <span class="mat-icon" style="font-size:15px">edit</span>
-                        </a>
-                        <form method="POST" action="delete.php" onsubmit="return confirm('Hapus laporan kendala ini?')">
-                            <input type="hidden" name="id" value="<?= $r['WaterReport_ID'] ?>">
-                            <button type="submit" class="btn-danger" title="Hapus">
-                                <span class="mat-icon" style="font-size:15px">delete</span>
-                            </button>
-                        </form>
+                        <?php if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff'): ?>
+                            <?php if ($r['Status'] === 'Pending'): ?>
+                                <a href="ambil.php?id=<?= $r['WaterReport_ID'] ?>" class="btn-primary" style="padding:6px 12px; font-size:.75rem; background: linear-gradient(135deg, #0058bc, #1d4ed8);">
+                                    <span class="mat-icon" style="font-size:14px; vertical-align:middle;">assignment</span> Ambil Tugas
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if (in_array($r['Status'], ['Pending', 'Diproses'])): ?>
+                                <a href="tolak.php?id=<?= $r['WaterReport_ID'] ?>" class="btn-danger" style="padding:6px 12px; font-size:.75rem;" onclick="return confirm('Tolak laporan ini sebagai laporan palsu?')">
+                                    <span class="mat-icon" style="font-size:14px; vertical-align:middle;">block</span> Tolak
+                                </a>
+                            <?php elseif ($r['Status'] === 'Selesai'): ?>
+                                <span class="badge badge-green" style="font-size:.75rem;">Selesai</span>
+                            <?php elseif ($r['Status'] === 'Ditolak'): ?>
+                                <span class="badge badge-red" style="font-size:.75rem;">Ditolak</span>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <!-- Admin Actions -->
+                            <a href="edit.php?id=<?= $r['WaterReport_ID'] ?>" class="btn-edit" title="Edit Laporan / Status">
+                                <span class="mat-icon" style="font-size:15px">edit</span>
+                            </a>
+                            
+                            <?php if (in_array($r['Status'], ['Pending', 'Diproses'])): ?>
+                                <a href="tolak.php?id=<?= $r['WaterReport_ID'] ?>" class="btn-danger" style="padding:8px 12px; font-size:.8rem;" onclick="return confirm('Tolak laporan ini sebagai laporan palsu?')">
+                                    <span class="mat-icon" style="font-size:14px; vertical-align:middle;">block</span> Tolak
+                                </a>
+                            <?php endif; ?>
+
+                            <form method="POST" action="delete.php" onsubmit="return confirm('Hapus laporan kendala ini?')">
+                                <input type="hidden" name="id" value="<?= $r['WaterReport_ID'] ?>">
+                                <button type="submit" class="btn-danger" title="Hapus" style="padding:8px 12px;">
+                                    <span class="mat-icon" style="font-size:14px; vertical-align:middle;">delete</span> Hapus
+                                </button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </td>
             </tr>

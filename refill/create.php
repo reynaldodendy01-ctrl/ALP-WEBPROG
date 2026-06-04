@@ -5,15 +5,29 @@ $pageTitle  = 'Catat Refill';
 $activeMenu = 'refill';
 define('ROOT', dirname(__DIR__));
 
-$assignmentsList = $pdo->query("
-    SELECT a.Assignment_ID, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai, a.Status
-    FROM staff_dispenser_assignment a
-    JOIN maintenance_staff ms ON a.Staff_ID = ms.Staff_ID
-    JOIN dispenser d ON a.Dispenser_ID = d.Dispenser_ID
-    JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
-    WHERE a.Status != 'Cancelled'
-    ORDER BY a.Created_At DESC
-")->fetchAll();
+if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
+    $stmt = $pdo->prepare("
+        SELECT a.Assignment_ID, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai, a.Status
+        FROM staff_dispenser_assignment a
+        JOIN maintenance_staff ms ON a.Staff_ID = ms.Staff_ID
+        JOIN dispenser d ON a.Dispenser_ID = d.Dispenser_ID
+        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
+        WHERE a.Status IN ('Pending', 'On Progress') AND a.Staff_ID = :staff_id
+        ORDER BY a.Created_At DESC
+    ");
+    $stmt->execute([':staff_id' => $_SESSION['staff_id']]);
+    $assignmentsList = $stmt->fetchAll();
+} else {
+    $assignmentsList = $pdo->query("
+        SELECT a.Assignment_ID, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai, a.Status
+        FROM staff_dispenser_assignment a
+        JOIN maintenance_staff ms ON a.Staff_ID = ms.Staff_ID
+        JOIN dispenser d ON a.Dispenser_ID = d.Dispenser_ID
+        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
+        WHERE a.Status != 'Cancelled'
+        ORDER BY a.Created_At DESC
+    ")->fetchAll();
+}
 
 $errors = [];
 $old    = [];

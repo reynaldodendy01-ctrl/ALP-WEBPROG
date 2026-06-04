@@ -29,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $kategori         = $_POST['kategori'] ?? '';
     $status           = $_POST['status'] ?? 'Pending';
     $deskripsi_report = trim($_POST['deskripsi_report'] ?? '');
-    $foto_url         = trim($_POST['foto_url'] ?? '');
 
     // Validation
     if (!$reporter_id) {
@@ -48,6 +47,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Deskripsi kendala wajib diisi.';
     }
 
+    $foto_url = null;
+    if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+        $fileTmpPath = $_FILES['foto']['tmp_name'];
+        $fileName = $_FILES['foto']['name'];
+        $fileSize = $_FILES['foto']['size'];
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        if (!in_array($fileExtension, $allowedExtensions)) {
+            $errors[] = "Ekstensi file tidak valid. Diperbolehkan: JPG, JPEG, PNG, GIF.";
+        } elseif ($fileSize > 5 * 1024 * 1024) {
+            $errors[] = "Ukuran file terlalu besar. Maksimum 5MB.";
+        } else {
+            $uploadFileDir = ROOT . '/uploads/';
+            if (!is_dir($uploadFileDir)) {
+                mkdir($uploadFileDir, 0777, true);
+            }
+            $newFileName = md5(uniqid(time(), true)) . '.' . $fileExtension;
+            $dest_path = $uploadFileDir . $newFileName;
+
+            if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                $foto_url = 'uploads/' . $newFileName;
+            } else {
+                $errors[] = "Gagal mengunggah foto. Silakan coba lagi.";
+            }
+        }
+    } elseif (isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $errors[] = "Terjadi kesalahan pada file upload: Kode " . $_FILES['foto']['error'];
+    }
+
     if (empty($errors)) {
         try {
             $stmt = $pdo->prepare("
@@ -60,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':kategori'         => $kategori,
                 ':status'           => $status,
                 ':deskripsi_report' => $deskripsi_report,
-                ':foto_url'         => $foto_url ?: null,
+                ':foto_url'         => $foto_url,
             ]);
 
             set_flash('success', 'Laporan kendala berhasil dibuat!');
@@ -96,7 +125,7 @@ include __DIR__ . '/../_partials/layout_head.php';
 
 <div style="max-width:680px;">
 <div class="card" style="padding:32px;">
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         <div class="form-group">
             <label class="form-label">Pelapor <span style="color:#ef4444">*</span></label>
             <select name="reporter_id" class="form-select" required>
@@ -142,9 +171,8 @@ include __DIR__ . '/../_partials/layout_head.php';
         </div>
 
         <div class="form-group">
-            <label class="form-label">URL Foto Pendukung (Opsional)</label>
-            <input type="url" name="foto_url" value="<?= h($old['foto_url'] ?? '') ?>"
-                   class="form-input" placeholder="https://example.com/foto-rusak.jpg">
+            <label class="form-label">Upload Foto Pendukung (Opsional)</label>
+            <input type="file" name="foto" accept="image/*" class="form-input">
         </div>
 
         <div class="form-group">

@@ -1,6 +1,23 @@
 <?php
 require_once __DIR__ . '/../db.php';
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Enforce authentication
+if (!isset($_SESSION['staff_logged_in']) || $_SESSION['staff_logged_in'] !== true) {
+    header('Location: ../login.php');
+    exit;
+}
+
+// Enforce admin-only access for deleting reports
+if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
+    set_flash('error', 'Akses ditolak: Hanya Super Admin yang dapat menghapus laporan secara langsung.');
+    header('Location: index.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = intval($_POST['id'] ?? 0);
 

@@ -3,11 +3,6 @@
 // Usage: include __DIR__ . '/../_partials/layout.php';
 // Set $pageTitle and $activeMenu before including.
 
-if (session_status() === PHP_SESSION_NONE) session_start();
-
-$pageTitle  = $pageTitle  ?? 'CariGalon';
-$activeMenu = $activeMenu ?? '';
-
 if (!defined('ROOT')) {
     // Calculate root relative to this partial (2 levels up from _partials/)
     define('ROOT', rtrim(dirname(dirname(__FILE__)), '/\\'));
@@ -22,6 +17,35 @@ if ($scriptDir === $rootDir) {
     $base = '../';
 }
 
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+// Enforce staff session authentication
+if (!isset($_SESSION['staff_logged_in']) || $_SESSION['staff_logged_in'] !== true) {
+    header('Location: ' . $base . 'login.php');
+    exit;
+}
+
+// Enforce role-based folder access control
+if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
+    $adminOnlyFolders = ['lokasi', 'dispensers', 'reporters', 'staff', 'assignments'];
+    $currentPath = $_SERVER['SCRIPT_NAME'];
+    $isBlocked = false;
+    foreach ($adminOnlyFolders as $folder) {
+        if (strpos($currentPath, "/$folder/") !== false) {
+            $isBlocked = true;
+            break;
+        }
+    }
+    if ($isBlocked) {
+        set_flash('error', 'Akses ditolak: Halaman ini hanya dapat diakses oleh Super Admin.');
+        header('Location: ' . $base . 'dashboard/index.php');
+        exit;
+    }
+}
+
+$pageTitle  = $pageTitle  ?? 'CariGalon';
+$activeMenu = $activeMenu ?? '';
+
 $menuItems = [
     ['key' => 'dashboard',   'href' => $base . 'dashboard/index.php',  'icon' => 'dashboard',      'label' => 'Dashboard'],
     ['key' => 'lokasi',      'href' => $base . 'lokasi/index.php',     'icon' => 'map',            'label' => 'Lokasi'],
@@ -32,6 +56,12 @@ $menuItems = [
     ['key' => 'assignments', 'href' => $base . 'assignments/index.php','icon' => 'assignment_turned_in', 'label' => 'Assignments'],
     ['key' => 'refill',      'href' => $base . 'refill/index.php',     'icon' => 'recycling',      'label' => 'Refill Log'],
 ];
+
+if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
+    $menuItems = array_filter($menuItems, function($item) {
+        return in_array($item['key'], ['dashboard', 'laporan', 'refill']);
+    });
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -163,11 +193,16 @@ $menuItems = [
     </nav>
 
     <!-- Footer -->
-    <div class="p-4 border-t border-white/10">
+    <div class="p-4 border-t border-white/10 flex flex-col gap-2">
         <a href="<?= $base ?>index.php"
            class="sidebar-link" style="font-size:.8rem;">
             <span class="mat-icon" style="font-size:18px">home</span>
             Kembali ke Beranda
+        </a>
+        <a href="<?= $base ?>logout.php"
+           class="sidebar-link text-red-400 hover:bg-red-950/30 hover:text-red-300" style="font-size:.8rem;">
+            <span class="mat-icon" style="font-size:18px">logout</span>
+            Keluar (Logout)
         </a>
     </div>
 </aside>
@@ -182,7 +217,13 @@ $menuItems = [
         </div>
         <div class="flex items-center gap-3">
             <span class="text-xs text-gray-400"><?= date('d M Y, H:i') ?> WIB</span>
-            <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">A</div>
+            <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
+                <?= strtoupper(mb_substr($_SESSION['staff_name'] ?? 'A', 0, 1)) ?>
+            </div>
+            <div class="hidden md:block text-left">
+                <div class="text-xs font-semibold text-gray-800"><?= h($_SESSION['staff_name'] ?? 'Staff') ?></div>
+                <div class="text-[10px] text-gray-400"><?= h(($_SESSION['staff_role'] ?? 'Staff') === 'Admin' ? 'Super Admin' : 'Staff Maintenance') ?></div>
+            </div>
         </div>
     </header>
 

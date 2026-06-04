@@ -63,3 +63,25 @@ function render_flash(): void {
 function h(mixed $val): string {
     return htmlspecialchars((string)($val ?? ''), ENT_QUOTES, 'UTF-8');
 }
+
+// ─── Photo URL Path Resolver Helper ─────────────────────────────────────────
+function get_foto_url(?string $path): string {
+    if (!$path) {
+        return '';
+    }
+    if (filter_var($path, FILTER_VALIDATE_URL)) {
+        return $path;
+    }
+    
+    $rootDir = realpath(__DIR__);
+    $scriptDir = realpath(dirname($_SERVER['SCRIPT_FILENAME']));
+    
+    $relativePrefix = '';
+    if ($scriptDir !== $rootDir) {
+        $relativePrefix = '../';
+    } else {
+        $relativePrefix = './';
+    }
+    
+    return $relativePrefix . ltrim($path, '/\\');
+}

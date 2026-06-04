@@ -23,7 +23,9 @@ CREATE TABLE maintenance_staff (
     Staff_ID    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     Nama        VARCHAR(100) NOT NULL,
     Email       VARCHAR(100) NOT NULL,
-    No_Telp     VARCHAR(20)  NOT NULL
+    No_Telp     VARCHAR(20)  NOT NULL,
+    Password    VARCHAR(255) NOT NULL,
+    Role        ENUM('Staff', 'Admin') NOT NULL DEFAULT 'Staff'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ─── 2. Tabel Reporter ───────────────────────────────────────────────
@@ -93,12 +95,12 @@ CREATE TABLE refill_logs (
 -- ============================================================
 
 -- Maintenance Staff
-INSERT INTO maintenance_staff (Nama, Email, No_Telp) VALUES
-('Budi Santoso',    'budi.santoso@uc.ac.id',    '08111234567'),
-('Agus Wahyudi',    'agus.wahyudi@uc.ac.id',    '08119876543'),
-('Siti Rahayu',     'siti.rahayu@uc.ac.id',     '08221122334'),
-('Deni Firmansyah', 'deni.f@uc.ac.id',          '08225566778'),
-('Rina Kusuma',     'rina.kusuma@uc.ac.id',     '08119001234');
+INSERT INTO maintenance_staff (Nama, Email, No_Telp, Password, Role) VALUES
+('Budi Santoso',    'budi.santoso@uc.ac.id',    '08111234567', '$2y$10$w8.3f6Xv61pU8qD.4/dKRejN9iZpGq7/R.yGf0G2.x4J/o8.p.uG2', 'Admin'),
+('Agus Wahyudi',    'agus.wahyudi@uc.ac.id',    '08119876543', '$2y$10$w8.3f6Xv61pU8qD.4/dKRejN9iZpGq7/R.yGf0G2.x4J/o8.p.uG2', 'Staff'),
+('Siti Rahayu',     'siti.rahayu@uc.ac.id',     '08221122334', '$2y$10$w8.3f6Xv61pU8qD.4/dKRejN9iZpGq7/R.yGf0G2.x4J/o8.p.uG2', 'Staff'),
+('Deni Firmansyah', 'deni.f@uc.ac.id',          '08225566778', '$2y$10$w8.3f6Xv61pU8qD.4/dKRejN9iZpGq7/R.yGf0G2.x4J/o8.p.uG2', 'Staff'),
+('Rina Kusuma',     'rina.kusuma@uc.ac.id',     '08119001234', '$2y$10$w8.3f6Xv61pU8qD.4/dKRejN9iZpGq7/R.yGf0G2.x4J/o8.p.uG2', 'Staff');
 
 -- Reporters
 INSERT INTO reporter (Nama, Nim) VALUES

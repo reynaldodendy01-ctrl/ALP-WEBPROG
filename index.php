@@ -10,46 +10,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     $dispenser_id = intval($_POST['dispenser_id'] ?? 0);
     $kategori = $_POST['kategori'] ?? '';
     $deskripsi = trim($_POST['deskripsi'] ?? '');
-    $foto_url = trim($_POST['foto_url'] ?? '');
 
     if (!$nama || !$nim || !$dispenser_id || !$kategori || !$deskripsi) {
         $report_error = "Semua field bertanda * wajib diisi.";
     } else {
-        try {
-            $pdo->beginTransaction();
+        $foto_url = null;
+        $upload_ok = true;
 
-            // Find or insert reporter
-            $stmt = $pdo->prepare("SELECT Reporter_ID FROM reporter WHERE Nim = :nim");
-            $stmt->execute([':nim' => $nim]);
-            $reporter_id = $stmt->fetchColumn();
+        if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+            $fileTmpPath = $_FILES['foto']['tmp_name'];
+            $fileName = $_FILES['foto']['name'];
+            $fileSize = $_FILES['foto']['size'];
+            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
-            if (!$reporter_id) {
-                $stmt = $pdo->prepare("INSERT INTO reporter (Nama, Nim) VALUES (:nama, :nim)");
-                $stmt->execute([':nama' => $nama, ':nim' => $nim]);
-                $reporter_id = $pdo->lastInsertId();
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+            if (!in_array($fileExtension, $allowedExtensions)) {
+                $report_error = "Ekstensi file tidak valid. Diperbolehkan: JPG, JPEG, PNG, GIF.";
+                $upload_ok = false;
+            } elseif ($fileSize > 5 * 1024 * 1024) {
+                $report_error = "Ukuran file terlalu besar. Maksimum 5MB.";
+                $upload_ok = false;
             } else {
-                $stmt = $pdo->prepare("UPDATE reporter SET Nama = :nama WHERE Reporter_ID = :reporter_id");
-                $stmt->execute([':nama' => $nama, ':reporter_id' => $reporter_id]);
+                $uploadFileDir = __DIR__ . '/uploads/';
+                if (!is_dir($uploadFileDir)) {
+                    mkdir($uploadFileDir, 0777, true);
+                }
+                $newFileName = md5(uniqid(time(), true)) . '.' . $fileExtension;
+                $dest_path = $uploadFileDir . $newFileName;
+
+                if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                    $foto_url = 'uploads/' . $newFileName;
+                } else {
+                    $report_error = "Gagal mengunggah foto. Silakan coba lagi.";
+                    $upload_ok = false;
+                }
             }
+        } elseif (isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $report_error = "Terjadi kesalahan pada file upload: Kode " . $_FILES['foto']['error'];
+            $upload_ok = false;
+        }
 
-            // Insert water report
-            $stmt = $pdo->prepare("
-                INSERT INTO water_report (Reporter_ID, Dispenser_ID, Kategori, Status, Deskripsi_Report, Foto_url, Reported_At)
-                VALUES (:reporter_id, :dispenser_id, :kategori, 'Pending', :deskripsi, :foto_url, NOW())
-            ");
-            $stmt->execute([
-                ':reporter_id' => $reporter_id,
-                ':dispenser_id' => $dispenser_id,
-                ':kategori' => $kategori,
-                ':deskripsi' => $deskripsi,
-                ':foto_url' => $foto_url ?: null
-            ]);
+        if ($upload_ok) {
+            try {
+                $pdo->beginTransaction();
 
-            $pdo->commit();
-            $report_success = "Laporan berhasil dikirim! Staff kami akan segera menindaklanjuti.";
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $report_error = "Gagal mengirim laporan: " . $e->getMessage();
+                // Find or insert reporter
+                $stmt = $pdo->prepare("SELECT Reporter_ID FROM reporter WHERE Nim = :nim");
+                $stmt->execute([':nim' => $nim]);
+                $reporter_id = $stmt->fetchColumn();
+
+                if (!$reporter_id) {
+                    $stmt = $pdo->prepare("INSERT INTO reporter (Nama, Nim) VALUES (:nama, :nim)");
+                    $stmt->execute([':nama' => $nama, ':nim' => $nim]);
+                    $reporter_id = $pdo->lastInsertId();
+                } else {
+                    $stmt = $pdo->prepare("UPDATE reporter SET Nama = :nama WHERE Reporter_ID = :reporter_id");
+                    $stmt->execute([':nama' => $nama, ':reporter_id' => $reporter_id]);
+                }
+
+                // Insert water report
+                $stmt = $pdo->prepare("
+                    INSERT INTO water_report (Reporter_ID, Dispenser_ID, Kategori, Status, Deskripsi_Report, Foto_url, Reported_At)
+                    VALUES (:reporter_id, :dispenser_id, :kategori, 'Pending', :deskripsi, :foto_url, NOW())
+                ");
+                $stmt->execute([
+                    ':reporter_id' => $reporter_id,
+                    ':dispenser_id' => $dispenser_id,
+                    ':kategori' => $kategori,
+                    ':deskripsi' => $deskripsi,
+                    ':foto_url' => $foto_url
+                ]);
+
+                $pdo->commit();
+                $report_success = "Laporan berhasil dikirim! Staff kami akan segera menindaklanjuti.";
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                $report_error = "Gagal mengirim laporan: " . $e->getMessage();
+            }
         }
     }
 }
@@ -575,7 +612,7 @@ try {
                         </div>
                     <?php endif; ?>
 
-                    <form method="POST" action="index.php#buat-laporan" class="space-y-6">
+                    <form method="POST" action="index.php#buat-laporan" enctype="multipart/form-data" class="space-y-6">
                         <input type="hidden" name="submit_report" value="1">
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -619,9 +656,23 @@ try {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-on-surface mb-2" for="foto_url">URL Foto Pendukung (Opsional)</label>
-                            <input class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
-                                   type="url" id="foto_url" name="foto_url" placeholder="https://example.com/foto.jpg">
+                            <label class="block text-sm font-semibold text-on-surface mb-2" for="foto">Upload Foto Kendala (Opsional)</label>
+                            <div class="flex items-center justify-center w-full">
+                                <label for="foto" class="flex flex-col items-center justify-center w-full h-32 border-2 border-outline-variant border-dashed rounded-xl cursor-pointer bg-white hover:bg-gray-50 transition-all">
+                                    <div class="flex flex-col items-center justify-center pt-4 pb-4">
+                                        <span class="material-symbols-outlined text-[32px] text-gray-400 mb-1">cloud_upload</span>
+                                        <p class="mb-1 text-sm text-gray-500 font-medium">Klik untuk upload foto</p>
+                                        <p class="text-xs text-gray-400">PNG, JPG, JPEG atau GIF (Max. 5MB)</p>
+                                    </div>
+                                    <input id="foto" name="foto" type="file" accept="image/*" class="hidden" />
+                                </label>
+                            </div>
+                            <div id="file-preview-container" class="mt-2 hidden">
+                                <p class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                                    File terpilih: <span id="file-name"></span>
+                                </p>
+                            </div>
                         </div>
 
                         <div>
@@ -791,6 +842,19 @@ setInterval(() => {
         ? "radio_button_checked"
         : "radio_button_unchecked";
 }, 800);
+
+// File input preview
+document.getElementById('foto').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? e.target.files[0].name : '';
+    const container = document.getElementById('file-preview-container');
+    const nameEl = document.getElementById('file-name');
+    if (fileName) {
+        nameEl.textContent = fileName;
+        container.classList.remove('hidden');
+    } else {
+        container.classList.add('hidden');
+    }
+});
 </script>
 
 </body>
