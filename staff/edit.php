@@ -1,4 +1,74 @@
 <?php
+/**
+ * =============================================================================
+ * staff/edit.php — Halaman Edit Profil & Akun Staff
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini menangani proses pengeditan data akun staf atau admin yang sudah
+ *   terdaftar dalam sistem CariGalon. Admin dapat memperbarui nama lengkap, email,
+ *   nomor telepon, role akses, serta area gedung tugas. Untuk password, field
+ *   bersifat opsional: jika dikosongkan maka password lama tetap dipertahankan,
+ *   namun jika diisi maka password baru akan di-hash dan disimpan menggantikan
+ *   yang lama. Hal ini memberikan fleksibilitas tanpa memaksa admin selalu mengubah
+ *   password saat melakukan pembaruan data profil staff.
+ *
+ * FUNGSI UTAMA:
+ *   - Memuat data staff existing dari database berdasarkan Staff_ID (?id=)
+ *   - Menampilkan form edit yang sudah terisi nilai data saat ini
+ *   - Validasi server-side: nama, email (format), no_telp wajib diisi; password opsional min 6 karakter
+ *   - Dua jalur UPDATE: dengan password baru (hash dulu) atau tanpa perubahan password
+ *   - Repopulasi form saat validasi gagal menggunakan nilai $old
+ *   - Redirect ke index.php dengan flash message sukses atau error yang sesuai
+ *   - Menangani kasus staff tidak ditemukan dengan redirect dan flash error
+ *
+ * ALUR KERJA (FLOW):
+ *   1. Inklusi db.php untuk koneksi PDO dan helper functions
+ *   2. Ambil parameter ?id dari URL; query data staff; redirect jika tidak ditemukan
+ *   3. Inisialisasi $old dengan data staff dari DB untuk pre-fill form
+ *   4. Jika request GET: render form terisi data existing
+ *   5. Jika request POST: ambil, trim, sanitasi semua input dari $_POST
+ *   6. Validasi: nama, email (FILTER_VALIDATE_EMAIL), no_telp wajib; password min 6 jika diisi
+ *   7. Jika password baru diisi: hash dan jalankan UPDATE dengan kolom Password
+ *   8. Jika password dikosongkan: jalankan UPDATE tanpa mengubah kolom Password
+ *   9. Set flash 'success', redirect ke index.php; tangkap PDOException jika gagal
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - maintenance_staff : Dibaca untuk memuat data awal form; diperbarui via UPDATE setelah validasi
+ *
+ * VARIABEL PENTING:
+ *   - $id               : ID staff yang akan diedit, diambil dari $_GET['id'] (integer)
+ *   - $staff            : Array data staff existing dari database (sebagai nilai awal form)
+ *   - $errors           : Array pesan error validasi; kosong = proses simpan dijalankan
+ *   - $old              : Array berisi data DB (saat GET) atau POST (saat validasi gagal)
+ *   - $nama             : Nama lengkap staff yang baru (maks 100 karakter)
+ *   - $email            : Email baru staff; divalidasi dengan FILTER_VALIDATE_EMAIL
+ *   - $no_telp          : Nomor telepon/WhatsApp baru (maks 20 karakter)
+ *   - $password         : Password baru plaintext (opsional; kosong = tidak diubah)
+ *   - $role             : Role baru: 'Staff' atau 'Admin'
+ *   - $gedung           : Area gedung tugas baru; kosong berarti NULL (semua gedung)
+ *   - $hashedPassword   : Hasil password_hash() dari $password; hanya dibuat jika $password != ''
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php          : Koneksi database PDO & helper functions (h(), set_flash())
+ *   - layout_head.php : Header HTML, sidebar navigasi, dan stylesheet utama
+ *   - layout_foot.php : Footer HTML, script JavaScript penutup halaman
+ *
+ * AKSES:
+ *   Hanya bisa diakses oleh Admin yang sudah login. Staff biasa tidak diizinkan
+ *   mengedit data akun lain.
+ *
+ * CATATAN PENGEMBANG:
+ *   Logika dua jalur UPDATE (dengan/tanpa password) menggunakan if-else eksplisit
+ *   agar tidak ada risiko password ter-null-kan secara tidak sengaja. Pertimbangkan
+ *   untuk menambahkan validasi bahwa admin tidak dapat mengubah role dirinya sendiri
+ *   menjadi Staff untuk mencegah lockout dari sistem administrasi.
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Edit Staff';

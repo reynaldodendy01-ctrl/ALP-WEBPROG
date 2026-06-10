@@ -1,4 +1,63 @@
 <?php
+/**
+ * =============================================================================
+ * index.php — Halaman Daftar Manajemen Pelapor (Reporters)
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini merupakan halaman utama modul Reporters yang menampilkan seluruh
+ *   data individu (mahasiswa, dosen, atau karyawan) yang pernah mengajukan
+ *   laporan kendala dispenser melalui sistem CariGalon. Setiap baris dalam
+ *   tabel menampilkan avatar inisial, nama lengkap, NIM, dan jumlah laporan
+ *   yang pernah dibuat oleh pelapor tersebut. Halaman ini menyediakan operasi
+ *   CRUD dasar: melihat daftar, menambah, mengedit, dan menghapus data pelapor.
+ *
+ * FUNGSI UTAMA:
+ *   - Menampilkan semua pelapor terdaftar beserta jumlah laporan masing-masing
+ *   - Menampilkan avatar inisial nama pelapor dengan warna gradasi biru
+ *   - Tombol Edit untuk memperbarui data pelapor (nama & NIM)
+ *   - Tombol Hapus dengan konfirmasi dialog sebelum menghapus
+ *   - Tombol "Tambah Pelapor" untuk mendaftarkan pelapor baru secara manual
+ *   - Menampilkan jumlah total pelapor terdaftar di subtitle header
+ *
+ * ALUR KERJA (FLOW):
+ *   1. db.php di-include untuk koneksi database dan helper functions
+ *   2. Query SELECT dijalankan dengan LEFT JOIN ke water_report dan GROUP BY
+ *      Reporter_ID untuk menghitung jumlah_laporan per pelapor
+ *   3. Hasil disimpan dalam array $reporters, diurutkan berdasarkan Nama ASC
+ *   4. layout_head.php di-include untuk header dan sidebar
+ *   5. Flash message ditampilkan
+ *   6. Tabel data dirender dengan loop foreach; bila kosong, tampil pesan informatif
+ *   7. Setiap baris memiliki link Edit dan form POST ke delete.php
+ *   8. layout_foot.php di-include untuk menutup halaman
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - reporter     : Data utama pelapor yang ditampilkan (nama, NIM, Reporter_ID)
+ *   - water_report : Di-JOIN (LEFT JOIN) untuk menghitung jumlah laporan per pelapor
+ *
+ * VARIABEL PENTING:
+ *   - $reporters : Array semua pelapor beserta jumlah laporan masing-masing
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php                    : Koneksi database PDO & helper functions (h(), render_flash())
+ *   - _partials/layout_head.php : Header HTML, sidebar navigasi, dan CSS global
+ *   - _partials/layout_foot.php : Footer HTML dan script JS penutup
+ *
+ * AKSES:
+ *   Hanya bisa diakses oleh admin. Data pelapor bersifat sensitif (mengandung
+ *   identitas mahasiswa/karyawan kampus).
+ *
+ * CATATAN PENGEMBANG:
+ *   - Avatar inisial digenerate dengan mb_substr($r['Nama'], 0, 1) untuk mendukung
+ *     karakter multibyte (nama dengan huruf non-ASCII)
+ *   - Penghapusan pelapor harus mempertimbangkan cascading ke tabel water_report;
+ *     pastikan foreign key constraint sudah dikonfigurasi dengan tepat di database
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Reporters';

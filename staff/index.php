@@ -1,4 +1,67 @@
 <?php
+/**
+ * =============================================================================
+ * staff/index.php — Halaman Daftar & Manajemen Staff Maintenance
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini merupakan halaman utama modul Manajemen Staff yang menampilkan
+ *   seluruh akun pengguna sistem CariGalon, mencakup staf maintenance maupun
+ *   admin. Setiap baris dalam tabel menampilkan avatar inisial nama, data kontak
+ *   (email, nomor telepon), area gedung yang ditangani, jumlah assignment aktif
+ *   yang sedang berjalan, serta total keseluruhan penugasan yang pernah diterima.
+ *   Halaman ini menjadi pusat kontrol akun dengan tombol aksi edit dan hapus.
+ *
+ * FUNGSI UTAMA:
+ *   - Menampilkan tabel daftar semua staff (maintenance_staff) beserta statistik assignment
+ *   - Menghitung jumlah assignment aktif (status Pending atau On Progress) per staff via agregasi SQL
+ *   - Menghitung total seluruh assignment (semua status) per staff
+ *   - Menampilkan avatar inisial nama staff dengan warna gradient biru
+ *   - Menampilkan badge area gedung tugas atau label "Semua" jika tidak spesifik
+ *   - Tombol aksi Edit (menuju edit.php) dan Hapus (POST ke delete.php) per baris
+ *   - Menampilkan pesan flash (sukses/error) hasil operasi CRUD sebelumnya
+ *
+ * ALUR KERJA (FLOW):
+ *   1. Inklusi db.php untuk koneksi PDO dan helper functions
+ *   2. Eksekusi query SELECT dengan LEFT JOIN ke staff_dispenser_assignment
+ *      dan GROUP BY Staff_ID untuk menghitung total_assignments & active_assignments
+ *   3. Fetch semua hasil ke array $staff, diurutkan berdasarkan nama (ORDER BY s.Nama)
+ *   4. Render layout_head.php (header, sidebar, stylesheet)
+ *   5. Tampilkan flash message jika ada dari operasi sebelumnya
+ *   6. Render header halaman dengan jumlah staff terdaftar dan tombol "Tambah Staff"
+ *   7. Render tabel responsif; jika $staff kosong tampilkan pesan empty-state
+ *   8. Tutup halaman dengan layout_foot.php
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - maintenance_staff            : Data utama akun staff (nama, email, no_telp, role, gedung)
+ *   - staff_dispenser_assignment   : Tabel relasi assignment; di-JOIN untuk menghitung statistik
+ *
+ * VARIABEL PENTING:
+ *   - $staff                     : Array semua data staff beserta kolom agregasi statistik
+ *   - $s['total_assignments']    : Total semua assignment (semua status) yang pernah dimiliki staff
+ *   - $s['active_assignments']   : Jumlah assignment dengan status 'Pending' atau 'On Progress'
+ *   - $s['Gedung']               : Area gedung tugas staff; NULL atau kosong berarti semua gedung
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php          : Koneksi database PDO & helper functions (h(), set_flash(), render_flash())
+ *   - layout_head.php : Header HTML, sidebar navigasi, dan stylesheet utama
+ *   - layout_foot.php : Footer HTML, script JavaScript penutup halaman
+ *
+ * AKSES:
+ *   Hanya bisa diakses oleh Admin yang sudah login. Staff maintenance tidak
+ *   seharusnya mengakses modul manajemen akun ini.
+ *
+ * CATATAN PENGEMBANG:
+ *   Kalkulasi active_assignments menggunakan CASE WHEN di dalam SUM() sehingga
+ *   lebih efisien daripada subquery terpisah. Jika status assignment bertambah
+ *   di masa mendatang (misal: 'Paused'), pastikan kondisi CASE di query ini
+ *   diperbarui agar hitungan aktif tetap akurat.
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Staff';

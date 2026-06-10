@@ -1,5 +1,9 @@
+<<<<<<< Updated upstream:index.php
 <?php
 require_once __DIR__ . '/db.php';
+=======
+<!-- DESKRIPSI FILE: Halaman utama (landing page) aplikasi untuk pengunjung publik yang berisi informasi ketersediaan galon dan form pelaporan. -->
+>>>>>>> Stashed changes:index.html
 
 // Handle public report submission
 $report_success = null;

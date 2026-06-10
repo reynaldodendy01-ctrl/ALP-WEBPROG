@@ -1,4 +1,80 @@
 <?php
+/**
+ * =============================================================================
+ * edit.php — Halaman Form Edit Laporan Kendala (Khusus Super Admin)
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini menyediakan halaman formulir bagi Super Admin untuk mengubah atau
+ *   mengoreksi data dari suatu laporan kendala dispenser air yang sudah ada di sistem.
+ *   Halaman ini hanya dapat diakses oleh Super Admin; pengguna dengan peran Staff
+ *   akan secara otomatis diredirect dengan pesan error akses ditolak. Form ini
+ *   mendukung perubahan pada semua field laporan termasuk penggantian foto lampiran,
+ *   perubahan status, pelapor, dispenser, kategori, dan deskripsi kendala.
+ *   Ketika status diubah menjadi 'Selesai', timestamp Resolved_At akan diisi otomatis.
+ *
+ * FUNGSI UTAMA:
+ *   - Memastikan otentikasi sesi (redirect ke login.php jika belum login).
+ *   - Memblokir akses pengguna dengan peran 'Staff' (hanya Super Admin yang boleh).
+ *   - Mengambil dan menampilkan data laporan yang ada berdasarkan ID dari parameter GET.
+ *   - Menampilkan form pre-filled dengan data laporan yang akan diedit.
+ *   - Memvalidasi semua input wajib (pelapor, dispenser, kategori, status).
+ *   - Menangani upload foto pengganti dengan validasi ekstensi & ukuran (maks 5MB);
+ *     file foto lama dihapus secara otomatis saat foto baru berhasil diupload.
+ *   - Mengupdate record laporan di tabel water_report menggunakan prepared statement.
+ *   - Mengisi kolom Resolved_At secara otomatis jika status diubah menjadi 'Selesai'.
+ *   - Menampilkan panel foto lampiran yang sudah ada dan metadata laporan (waktu dibuat & diselesaikan).
+ *
+ * ALUR KERJA (FLOW):
+ *   1. db.php di-include; sesi diperiksa untuk autentikasi dan otorisasi peran.
+ *   2. ID laporan diambil dari $_GET['id'] dan data laporan di-fetch dari database.
+ *   3. Jika laporan tidak ditemukan, flash error diset dan redirect ke index.php.
+ *   4. Daftar pelapor dan dispenser diambil untuk mengisi dropdown form.
+ *   5. Jika request adalah POST, input baru diambil dan divalidasi.
+ *   6. Jika ada foto baru, file lama dihapus dan foto baru diupload ke /uploads/.
+ *   7. Status 'Selesai' memicu pengisian Resolved_At = NOW(); status lain menghapus Resolved_At.
+ *   8. Jika validasi lolos, UPDATE dijalankan pada tabel water_report.
+ *   9. Flash message sukses diset dan pengguna diredirect ke index.php.
+ *  10. Jika ada error, form dirender ulang dengan nilai lama dan pesan error.
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - water_report  : Tabel yang di-SELECT (untuk fetch data lama) dan di-UPDATE (simpan perubahan).
+ *   - reporter      : Di-SELECT untuk mengisi dropdown pilihan pelapor.
+ *   - dispenser     : Di-SELECT (JOIN dengan lokasi) untuk mengisi dropdown pilihan dispenser.
+ *   - lokasi        : Di-JOIN dengan dispenser untuk menampilkan nama gedung dan lantai.
+ *
+ * VARIABEL PENTING:
+ *   - $id           : Integer ID laporan yang sedang diedit (dari $_GET['id']).
+ *   - $report       : Array asosiatif data laporan lama yang diambil dari database.
+ *   - $old          : Array nilai form; diisi dari $report saat GET, dari $_POST saat validasi gagal.
+ *   - $errors       : Array pesan error validasi yang dikumpulkan selama proses validasi.
+ *   - $foto_url     : String path foto; dipertahankan dari nilai lama atau diperbarui jika ada upload baru.
+ *   - $resolved_at  : Timestamp penyelesaian; diisi NOW() jika status berubah ke 'Selesai', null jika tidak.
+ *   - $reportersList: Array data semua pelapor untuk opsi dropdown form.
+ *   - $dispensersList: Array data semua dispenser (dengan info lokasi) untuk opsi dropdown form.
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php          : Koneksi database PDO & helper functions (h(), set_flash(), get_foto_url()).
+ *   - layout_head.php : Header HTML, sidebar navigasi, dan pembuka konten utama.
+ *   - layout_foot.php : Footer HTML dan script penutup halaman.
+ *
+ * AKSES:
+ *   Hanya Super Admin yang sudah login. Pengguna dengan peran 'Staff' akan
+ *   diredirect ke index.php dengan pesan error "Akses ditolak".
+ *
+ * CATATAN PENGEMBANG:
+ *   - File foto lama dihapus menggunakan @unlink() (dengan @ untuk menekan error jika file
+ *     tidak ditemukan) sebelum menyimpan foto baru.
+ *   - Kolom Resolved_At di-set ke null jika status dikembalikan dari 'Selesai' ke status lain,
+ *     memastikan konsistensi data waktu penyelesaian.
+ *   - Layout dua kolom (2fr 1fr) digunakan: kolom kiri untuk form edit, kolom kanan untuk
+ *     preview foto dan metadata laporan.
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
 if (session_status() === PHP_SESSION_NONE) {

@@ -1,0 +1,132 @@
+/* DESKRIPSI FILE: File stylesheet utama yang mengatur tampilan dan desain antarmuka aplikasi, khususnya bagian dashboard admin. */
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f7f9fb;
+    color: #191c1e;
+    -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-outlined {
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24;
+}
+
+.ambient-shadow {
+    box-shadow: 0 30px 60px -12px rgba(0, 91, 193, 0.08);
+}
+
+.fade-in {
+    animation: fadeIn 1s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.blend-image {
+    mix-blend-mode: multiply;
+}
+
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid #c1c6d7;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.stat-item {
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    border-right: 1px solid #e0e3e5;
+}
+
+.stat-item:last-child {
+    border-right: none;
+}
+
+.stat-num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0058bc;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #414755;
+    font-weight: 500;
+}
+
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1rem;
+    margin-top: 3rem;
+}
+
+.bento-a {
+    grid-column: span 5;
+}
+
+.bento-b {
+    grid-column: span 7;
+}
+
+.bento-c,
+.bento-d,
+.bento-e {
+    grid-column: span 4;
+}
+
+@media (max-width: 768px) {
+
+    .bento-a,
+    .bento-b,
+    .bento-c,
+    .bento-d,
+    .bento-e {
+        grid-column: span 12;
+    }
+
+    .stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-item:nth-child(2) {
+        border-right: none;
+    }
+
+    .stat-item:nth-child(3),
+    .stat-item:nth-child(4) {
+        border-top: 1px solid #e0e3e5;
+    }
+}
+
+@media (max-width: 640px) {
+    .stats-bar {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-item {
+        border-right: none;
+        border-bottom: 1px solid #e0e3e5;
+    }
+
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+}

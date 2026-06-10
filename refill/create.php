@@ -1,4 +1,80 @@
 <?php
+/**
+ * =============================================================================
+ * create.php — Halaman Form Pencatatan Pengisian Galon (Catat Refill)
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini menyediakan form untuk mencatat aktivitas pengisian ulang galon air
+ *   (refill) yang dikaitkan dengan satu penugasan (assignment) aktif. Terdapat
+ *   logika khusus berbasis role: staf maintenance hanya dapat memilih penugasan
+ *   milik mereka sendiri yang masih aktif, sedangkan admin dapat melihat seluruh
+ *   penugasan yang belum dibatalkan. Setelah refill berhasil dicatat, status
+ *   penugasan otomatis berubah menjadi "Completed" dan water report terkait
+ *   (bila ada) juga diperbarui menjadi "Selesai" dalam satu transaksi atomik.
+ *
+ * FUNGSI UTAMA:
+ *   - Menampilkan form pencatatan refill dengan dropdown pilihan penugasan aktif
+ *   - Membedakan daftar penugasan berdasarkan role sesi (Staff vs Admin)
+ *   - Mendukung pre-select penugasan via parameter URL (?assignment_id=...)
+ *   - Memvalidasi bahwa penugasan dipilih sebelum menyimpan
+ *   - Menyimpan log refill baru ke tabel refill_logs
+ *   - Mengubah status penugasan menjadi "Completed" secara otomatis
+ *   - Memperbarui status water_report terkait menjadi "Selesai" + Resolved_At
+ *   - Redirect ke index.php dengan flash message sukses setelah berhasil
+ *
+ * ALUR KERJA (FLOW):
+ *   1. db.php di-include untuk koneksi dan helper functions
+ *   2. Dicek role staf dari $_SESSION['staff_role']:
+ *      - Role 'Staff': query penugasan aktif milik staf itu saja (WHERE Staff_ID = :staff_id)
+ *        Jika tidak ada penugasan aktif, redirect ke dashboard dengan pesan error
+ *      - Role lain (Admin): query semua penugasan yang Status != 'Cancelled'
+ *   3. Bila ada parameter GET assignment_id, nilai tersebut di-preselect di form
+ *   4. Jika request POST:
+ *      a. assignment_id dan catatan dibaca dari $_POST
+ *      b. Validasi: assignment_id wajib dipilih
+ *      c. Bila valid: transaksi dimulai
+ *      d. INSERT ke refill_logs (Assignment_ID, Refill_At, Catatan)
+ *      e. UPDATE status penugasan menjadi 'Completed'
+ *      f. Ambil WaterReport_ID dari penugasan; bila ada, UPDATE water_report = 'Selesai'
+ *      g. Commit, flash sukses, redirect ke index.php
+ *      h. Bila exception: rollback, tampilkan error
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - refill_logs                : INSERT data log refill baru
+ *   - staff_dispenser_assignment : SELECT daftar penugasan; UPDATE status jadi 'Completed'
+ *   - maintenance_staff          : JOIN untuk mendapatkan nama staf di dropdown
+ *   - dispenser                  : JOIN untuk kode dispenser
+ *   - lokasi                     : JOIN untuk nama gedung dan lantai
+ *   - water_report               : UPDATE status menjadi 'Selesai' bila terkait penugasan
+ *
+ * VARIABEL PENTING:
+ *   - $assignmentsList : Array penugasan aktif yang tersedia untuk dipilih di form
+ *   - $errors          : Array pesan validasi error
+ *   - $old             : Array nilai form lama (untuk repopulate saat error)
+ *   - $assignment_id   : ID penugasan yang dipilih (integer)
+ *   - $catatan         : Catatan pengisian galon (string, nullable)
+ *   - $report_id       : WaterReport_ID dari penugasan terpilih (untuk sinkronisasi)
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php                    : Koneksi database PDO & helper functions
+ *   - _partials/layout_head.php : Header HTML, sidebar navigasi, dan CSS global
+ *   - _partials/layout_foot.php : Footer HTML dan script JS penutup
+ *
+ * AKSES:
+ *   Dapat diakses oleh admin dan staf maintenance yang memiliki penugasan aktif.
+ *   Staf tanpa penugasan aktif akan di-redirect ke dashboard secara otomatis.
+ *
+ * CATATAN PENGEMBANG:
+ *   - Seluruh operasi database (INSERT refill + UPDATE assignment + UPDATE water_report)
+ *     dibungkus dalam satu transaksi untuk menjamin konsistensi data
+ *   - Parameter ?assignment_id di URL memudahkan akses cepat dari halaman assignments/index.php
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Catat Refill';

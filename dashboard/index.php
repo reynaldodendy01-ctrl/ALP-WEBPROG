@@ -1,112 +1,94 @@
 <?php
+/**
+ * =============================================================================
+ * dashboard/index.php — Halaman Beranda Dashboard (Admin & Staff)
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini merupakan halaman utama (beranda) dari dashboard internal sistem
+ *   CariGalon yang bersifat adaptif: tampilannya berubah secara dinamis tergantung
+ *   pada role pengguna yang sedang login. Untuk role 'Staff' (Office Boy / Teknisi),
+ *   halaman menampilkan daftar tugas aktif pribadi, laporan masuk yang belum diambil,
+ *   dan statistik personal. Untuk role 'Admin' (Super Admin), halaman menampilkan
+ *   ringkasan statistik global sistem, laporan kendala terbaru dari seluruh dispenser,
+ *   riwayat refill terkini, penugasan aktif semua staff, dan menu aksi cepat admin.
+ *   Halaman ini menjadi pusat operasional harian bagi kedua tipe pengguna.
+ *
+ * FUNGSI UTAMA:
+ *   - Mendeteksi role pengguna dari sesi dan menyesuaikan tampilan dashboard
+ *   - Untuk Staff: menampilkan tugas aktif pribadi (Pending/On Progress)
+ *   - Untuk Staff: menampilkan daftar laporan masuk (Pending/unclaimed) yang bisa diambil
+ *   - Untuk Staff: menampilkan statistik (tugas aktif, laporan pending, total refill selesai)
+ *   - Untuk Admin: menampilkan statistik global (total dispenser, lokasi, laporan, penugasan)
+ *   - Untuk Admin: menampilkan tabel laporan kendala terbaru (5 terakhir)
+ *   - Untuk Admin: menampilkan tabel riwayat refill terkini (5 terakhir)
+ *   - Untuk Admin: menampilkan daftar penugasan aktif (5 terbaru)
+ *   - Menyediakan popup modal untuk melihat foto laporan dalam ukuran besar
+ *   - Menyediakan tombol aksi cepat (Quick Actions) untuk navigasi ke halaman terkait
+ *
+ * ALUR KERJA (FLOW):
+ *   1. db.php di-include; sesi dimulai; konstanta ROOT didefinisikan
+ *   2. Role pengguna diambil dari sesi; jika tidak ada, di-query dari database
+ *   3. Berdasarkan $isStaff (boolean), cabang query yang berbeda dijalankan:
+ *      - Staff: query tugas aktif, laporan pending, laporan unclaimed, jumlah refill
+ *      - Admin: query total dispenser, lokasi, staff, laporan, penugasan, refill hari ini
+ *              + query list laporan terbaru, refill terbaru, penugasan aktif
+ *   4. layout_head.php di-include untuk merender sidebar + header dashboard
+ *   5. render_flash() dipanggil untuk menampilkan notifikasi sesi jika ada
+ *   6. Konten HTML dashboard dirender sesuai kondisi $isStaff (if/else)
+ *   7. Modal popup foto dirender di akhir body
+ *   8. Script JavaScript untuk modal foto (openPhotoPopup/closePhotoPopup) diinline
+ *   9. layout_foot.php di-include untuk menutup tag HTML
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - maintenance_staff           : Mengambil role staff berdasarkan Staff_ID dari sesi
+ *   - staff_dispenser_assignment  : Menghitung dan mengambil tugas aktif staff
+ *   - water_report                : Mengambil laporan pending (unclaimed) dan statistik global
+ *   - refill_logs                 : Menghitung refill selesai milik staff dan riwayat refill admin
+ *   - dispenser                   : JOIN untuk mendapatkan Kode_Dispenser pada setiap laporan/tugas
+ *   - lokasi                      : JOIN untuk mendapatkan Nama_Gedung dan Lantai dispenser
+ *   - reporter                    : JOIN untuk mendapatkan nama dan NIM pelapor (water_report)
+ *
+ * VARIABEL PENTING:
+ *   - $isStaff                  : Boolean; true jika role 'Staff', false jika Admin
+ *   - $my_active_tasks          : Array tugas aktif milik staff yang login (mode Staff)
+ *   - $unclaimed_reports        : Array laporan pending yang belum diambil siapapun (mode Staff)
+ *   - $total_my_active_tasks    : Jumlah tugas aktif pribadi staff (mode Staff)
+ *   - $total_pending_reports    : Total laporan berstatus Pending di seluruh sistem (mode Staff)
+ *   - $total_my_completed_refills : Total refill yang telah diselesaikan staff ini (mode Staff)
+ *   - $total_dispensers         : Total dispenser terdaftar (mode Admin)
+ *   - $total_locations          : Total lokasi gedung terdaftar (mode Admin)
+ *   - $total_staff              : Total staff maintenance aktif (mode Admin)
+ *   - $reports_pending          : Jumlah laporan berstatus Pending (mode Admin)
+ *   - $reports_proses           : Jumlah laporan berstatus Diproses (mode Admin)
+ *   - $assignments_active       : Jumlah penugasan aktif (mode Admin)
+ *   - $refills_today            : Jumlah refill yang dicatat hari ini (mode Admin)
+ *   - $recentLaporan            : Array 5 laporan kendala terbaru (mode Admin)
+ *   - $recentRefill             : Array 5 riwayat refill terbaru (mode Admin)
+ *   - $activeAssignmentsList    : Array 5 penugasan aktif terbaru (mode Admin)
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php               : Koneksi database ($pdo) & helper functions (h, render_flash, get_foto_url)
+ *   - layout_head.php      : Header HTML, sidebar navigasi, pengecekan sesi & role akses
+ *   - layout_foot.php      : Penutup tag </main></div></body></html>
+ *
+ * AKSES:
+ *   Hanya dapat diakses oleh pengguna yang sudah login (staff maupun admin).
+ *   Pengguna yang belum login akan di-redirect ke login.php oleh layout_head.php.
+ *
+ * CATATAN PENGEMBANG:
+ *   Halaman ini memiliki dua "mode" tampilan yang dikontrol oleh variabel $isStaff.
+ *   Pastikan setiap perubahan pada struktur tabel yang di-query di sini juga direfleksikan
+ *   pada file-file terkait (laporan/ambil.php, refill/create.php, dll.). Foto laporan
+ *   dirender menggunakan get_foto_url() untuk menangani path relatif secara otomatis.
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-$pageTitle  = 'Dashboard';
-$activeMenu = 'dashboard';
-define('ROOT', dirname(__DIR__));
-
-if (!isset($_SESSION['staff_role'])) {
-    $stmt = $pdo->prepare("SELECT Role FROM maintenance_staff WHERE Staff_ID = :id LIMIT 1");
-    $stmt->execute([':id' => $_SESSION['staff_id']]);
-    $_SESSION['staff_role'] = $stmt->fetchColumn() ?: 'Staff';
-}
-
-$isStaff = ($_SESSION['staff_role'] === 'Staff');
-
-if ($isStaff) {
-    // ── Queries for Staff ──────────────────────────────────────────────────
-    $staff_id = $_SESSION['staff_id'];
-
-    // 1. My active tasks count (Pending or On Progress)
-    $stmtMyTasksCount = $pdo->prepare("SELECT COUNT(*) FROM staff_dispenser_assignment WHERE Staff_ID = :staff_id AND Status IN ('Pending', 'On Progress')");
-    $stmtMyTasksCount->execute([':staff_id' => $staff_id]);
-    $total_my_active_tasks = $stmtMyTasksCount->fetchColumn();
-
-    // 2. Global pending water reports (unclaimed/waiting for staff)
-    $total_pending_reports = $pdo->query("SELECT COUNT(*) FROM water_report WHERE Status = 'Pending'")->fetchColumn();
-
-    // 3. My completed refills count
-    $stmtMyRefillsCount = $pdo->prepare("
-        SELECT COUNT(*) FROM refill_logs rl
-        JOIN staff_dispenser_assignment sda ON rl.Assignment_ID = sda.Assignment_ID
-        WHERE sda.Staff_ID = :staff_id
-    ");
-    $stmtMyRefillsCount->execute([':staff_id' => $staff_id]);
-    $total_my_completed_refills = $stmtMyRefillsCount->fetchColumn();
-
-    // 4. My active tasks list
-    $stmtMyActiveTasks = $pdo->prepare("
-        SELECT a.*, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai,
-               wr.Kategori AS kategori_laporan, wr.Deskripsi_Report, wr.Foto_url
-        FROM staff_dispenser_assignment a
-        JOIN dispenser d ON a.Dispenser_ID = d.Dispenser_ID
-        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
-        LEFT JOIN water_report wr ON a.WaterReport_ID = wr.WaterReport_ID
-        WHERE a.Staff_ID = :staff_id AND a.Status IN ('Pending', 'On Progress')
-        ORDER BY a.Created_At DESC
-    ");
-    $stmtMyActiveTasks->execute([':staff_id' => $staff_id]);
-    $my_active_tasks = $stmtMyActiveTasks->fetchAll();
-
-    // 5. Global pending water reports (for staff to accept)
-    $unclaimed_reports = $pdo->query("
-        SELECT wr.*, rep.Nama AS nama_pelapor, rep.Nim AS nim_pelapor, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai
-        FROM water_report wr
-        JOIN reporter rep ON wr.Reporter_ID = rep.Reporter_ID
-        JOIN dispenser d ON wr.Dispenser_ID = d.Dispenser_ID
-        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
-        WHERE wr.Status = 'Pending'
-        ORDER BY wr.Reported_At DESC LIMIT 10
-    ")->fetchAll();
-
-} else {
-    // ── Queries for Admin (Super Admin) ───────────────────────────────────
-    $total_dispensers = $pdo->query("SELECT COUNT(*) FROM dispenser")->fetchColumn();
-    $total_locations  = $pdo->query("SELECT COUNT(*) FROM lokasi")->fetchColumn();
-    $total_staff      = $pdo->query("SELECT COUNT(*) FROM maintenance_staff")->fetchColumn();
-
-    $reports_pending  = $pdo->query("SELECT COUNT(*) FROM water_report WHERE Status = 'Pending'")->fetchColumn();
-    $reports_proses   = $pdo->query("SELECT COUNT(*) FROM water_report WHERE Status = 'Diproses'")->fetchColumn();
-
-    $assignments_active = $pdo->query("SELECT COUNT(*) FROM staff_dispenser_assignment WHERE Status IN ('Pending', 'On Progress')")->fetchColumn();
-    $refills_today      = $pdo->query("SELECT COUNT(*) FROM refill_logs WHERE DATE(Refill_At) = CURDATE()")->fetchColumn();
-
-    // Recent Laporan (Water Reports)
-    $recentLaporan = $pdo->query("
-        SELECT wr.*, rep.Nama AS nama_pelapor, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai
-        FROM water_report wr
-        JOIN reporter rep ON wr.Reporter_ID = rep.Reporter_ID
-        JOIN dispenser d ON wr.Dispenser_ID = d.Dispenser_ID
-        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
-        ORDER BY wr.Reported_At DESC LIMIT 5
-    ")->fetchAll();
-
-    // Recent Refill
-    $recentRefill = $pdo->query("
-        SELECT rl.*, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung
-        FROM refill_logs rl
-        JOIN staff_dispenser_assignment sda ON rl.Assignment_ID = sda.Assignment_ID
-        JOIN maintenance_staff ms ON sda.Staff_ID = ms.Staff_ID
-        JOIN dispenser d ON sda.Dispenser_ID = d.Dispenser_ID
-        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
-        ORDER BY rl.Refill_At DESC LIMIT 5
-    ")->fetchAll();
-
-    // Active Assignments
-    $activeAssignmentsList = $pdo->query("
-        SELECT a.*, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai
-        FROM staff_dispenser_assignment a
-        JOIN maintenance_staff ms ON a.Staff_ID = ms.Staff_ID
-        JOIN dispenser d ON a.Dispenser_ID = d.Dispenser_ID
-        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
-        WHERE a.Status IN ('Pending', 'On Progress')
-        ORDER BY a.Created_At DESC LIMIT 5
-    ")->fetchAll();
-}
 
 include __DIR__ . '/../_partials/layout_head.php';
 ?>

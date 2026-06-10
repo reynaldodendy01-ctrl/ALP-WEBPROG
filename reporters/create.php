@@ -1,4 +1,68 @@
 <?php
+/**
+ * =============================================================================
+ * create.php — Halaman Form Tambah Pelapor Baru
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini menyediakan halaman form untuk mendaftarkan pelapor baru secara
+ *   manual oleh admin ke dalam sistem CariGalon. Pelapor adalah individu
+ *   (mahasiswa, dosen, atau karyawan) yang mengajukan laporan kendala dispenser
+ *   air di kampus. Data yang dicatat mencakup nama lengkap dan NIM pelapor.
+ *   Sistem memeriksa keunikan NIM agar tidak terjadi duplikasi data pelapor
+ *   sebelum menyimpan ke database.
+ *
+ * FUNGSI UTAMA:
+ *   - Menampilkan form input Nama dan NIM pelapor baru
+ *   - Validasi input sisi server: nama dan NIM wajib diisi
+ *   - Pemeriksaan duplikasi NIM sebelum INSERT ke database
+ *   - Menyimpan data pelapor baru ke tabel reporter
+ *   - Menampilkan pesan error yang jelas apabila validasi atau duplikasi NIM gagal
+ *   - Redirect ke index.php dengan flash message sukses setelah berhasil
+ *
+ * ALUR KERJA (FLOW):
+ *   1. db.php di-include untuk koneksi database dan helper functions
+ *   2. Jika request adalah GET: form kosong ditampilkan
+ *   3. Jika request adalah POST:
+ *      a. Nilai nama dan nim dibaca dari $_POST dan di-trim
+ *      b. Validasi: nama dan nim tidak boleh kosong
+ *      c. Bila validasi lulus: cek apakah NIM sudah ada di tabel reporter
+ *      d. Bila NIM sudah ada: tambahkan error "NIM sudah terdaftar"
+ *      e. Bila NIM belum ada: jalankan INSERT ke tabel reporter
+ *      f. Set flash message sukses, redirect ke index.php, exit
+ *      g. Bila PDOException: tambahkan error teknis dari pesan exception
+ *   4. Bila ada error: form dirender ulang dengan pesan error dan nilai lama ($old)
+ *   5. layout_foot.php di-include untuk menutup halaman
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - reporter : SELECT untuk cek duplikasi NIM; INSERT untuk data pelapor baru
+ *
+ * VARIABEL PENTING:
+ *   - $errors : Array pesan error validasi yang dikumpulkan sebelum INSERT
+ *   - $old    : Array nilai $_POST yang dipertahankan untuk repopulate form
+ *   - $nama   : Nama lengkap pelapor (string, hasil trim dari $_POST['nama'])
+ *   - $nim    : NIM pelapor (string, hasil trim dari $_POST['nim'])
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php                    : Koneksi database PDO & helper functions
+ *   - _partials/layout_head.php : Header HTML, sidebar navigasi, dan CSS global
+ *   - _partials/layout_foot.php : Footer HTML dan script JS penutup
+ *
+ * AKSES:
+ *   Hanya bisa diakses oleh admin. Pendaftaran pelapor manual diperlukan saat
+ *   pelapor belum terdaftar atau perlu dikelola secara langsung dari panel admin.
+ *
+ * CATATAN PENGEMBANG:
+ *   - NIM bersifat unik di tabel reporter; pastikan kolom Nim memiliki constraint UNIQUE
+ *   - Maxlength form disesuaikan: nama maks 100 karakter, NIM maks 20 karakter
+ *   - Pendaftaran pelapor juga dapat terjadi secara otomatis melalui API submit_report.php
+ *     saat pengguna mengirim laporan dari halaman publik
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Tambah Pelapor';

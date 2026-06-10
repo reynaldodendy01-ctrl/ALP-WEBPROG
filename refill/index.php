@@ -1,4 +1,66 @@
 <?php
+/**
+ * =============================================================================
+ * index.php — Halaman Daftar Riwayat Pengisian Galon (Refill Logs)
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini merupakan halaman utama modul Refill yang menampilkan seluruh riwayat
+ *   pencatatan pengisian ulang galon air (refill logs) di semua unit dispenser
+ *   kampus. Setiap entri log mencatat informasi staf yang melakukan pengisian,
+ *   kode dispenser beserta lokasinya, catatan tambahan pengisian, dan waktu refill
+ *   dilakukan. Halaman ini berfungsi sebagai audit trail aktivitas operasional
+ *   maintenance galon di seluruh kampus.
+ *
+ * FUNGSI UTAMA:
+ *   - Menampilkan semua log refill dalam format tabel yang terurut dari yang terbaru
+ *   - Menampilkan informasi staf PIC, kode dispenser, lokasi gedung & lantai
+ *   - Menampilkan catatan pengisian dan waktu refill dalam format tanggal WIB
+ *   - Tombol hapus log refill untuk setiap baris (dengan konfirmasi dialog)
+ *   - Tombol "Catat Refill Baru" hanya muncul untuk admin (bukan untuk role Staff)
+ *   - Menampilkan pesan kosong apabila belum ada log refill tercatat
+ *
+ * ALUR KERJA (FLOW):
+ *   1. db.php di-include untuk mendapatkan koneksi $pdo dan helper functions
+ *   2. Query SELECT dijalankan dengan JOIN ke tabel assignment, staff, dispenser, lokasi
+ *      diurutkan berdasarkan Refill_At DESC (terbaru di atas)
+ *   3. Semua log refill disimpan dalam array $refills
+ *   4. layout_head.php di-include untuk merender header dan sidebar navigasi
+ *   5. Flash message dari aksi sebelumnya ditampilkan
+ *   6. Tombol "Catat Refill Baru" ditampilkan secara kondisional berdasarkan role sesi
+ *   7. Tabel data dirender dengan loop foreach; bila kosong tampil pesan informatif
+ *   8. Setiap baris memiliki form POST ke delete.php untuk menghapus log
+ *   9. layout_foot.php di-include untuk menutup halaman
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - refill_logs                : Data utama riwayat pengisian galon yang ditampilkan
+ *   - staff_dispenser_assignment : Relasi untuk mendapatkan staf dan dispenser terkait
+ *   - maintenance_staff          : Nama staf yang melakukan refill
+ *   - dispenser                  : Kode unit dispenser
+ *   - lokasi                     : Gedung dan lantai lokasi dispenser
+ *
+ * VARIABEL PENTING:
+ *   - $refills : Array semua log refill hasil query JOIN yang akan ditampilkan di tabel
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php                    : Koneksi database PDO & helper functions (h(), render_flash())
+ *   - _partials/layout_head.php : Header HTML, sidebar navigasi, dan CSS global
+ *   - _partials/layout_foot.php : Footer HTML dan script JS penutup
+ *
+ * AKSES:
+ *   Dapat diakses oleh admin dan staff yang login. Namun tombol "Catat Refill Baru"
+ *   hanya tampil untuk pengguna dengan role selain 'Staff' (yaitu admin/supervisor).
+ *
+ * CATATAN PENGEMBANG:
+ *   - Role check menggunakan $_SESSION['staff_role']; pastikan session sudah diinisialisasi
+ *     melalui db.php atau middleware sebelum halaman ini dimuat
+ *   - Waktu Refill_At ditampilkan dalam format "d M Y, H:i WIB" menggunakan date() PHP
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Refill Logs';

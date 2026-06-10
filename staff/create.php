@@ -1,4 +1,69 @@
 <?php
+/**
+ * =============================================================================
+ * staff/create.php — Halaman Tambah Akun Staff Baru
+ * =============================================================================
+ *
+ * DESKRIPSI:
+ *   File ini menyediakan form lengkap untuk mendaftarkan akun pengguna baru ke
+ *   dalam sistem CariGalon, baik dengan role Staff Maintenance maupun Super Admin.
+ *   Admin mengisi nama lengkap, email, nomor telepon/WhatsApp, password, role akses,
+ *   dan area gedung yang menjadi tanggung jawab staff tersebut. Password yang
+ *   diinput akan di-hash menggunakan password_hash() dengan algoritma bcrypt
+ *   sebelum disimpan, sehingga password tidak pernah tersimpan dalam bentuk plaintext.
+ *
+ * FUNGSI UTAMA:
+ *   - Menampilkan form registrasi akun staff dengan field: nama, email, no_telp, password, role, gedung
+ *   - Validasi server-side: cek field wajib, format email, panjang password minimum, dan role valid
+ *   - Hashing password dengan password_hash() (PASSWORD_DEFAULT / bcrypt) sebelum INSERT
+ *   - Menyimpan akun staff baru ke tabel `maintenance_staff` via INSERT
+ *   - Repopulasi nilai form jika validasi gagal untuk menghindari user mengisi ulang
+ *   - Redirect ke index.php dengan flash message sukses setelah berhasil disimpan
+ *
+ * ALUR KERJA (FLOW):
+ *   1. Inklusi db.php untuk koneksi PDO dan helper functions
+ *   2. Jika request GET: render form kosong dengan nilai default role 'Staff'
+ *   3. Jika request POST: ambil dan trim semua input dari $_POST
+ *   4. Validasi: nama wajib, email valid, no_telp wajib, password min 6 karakter, role valid
+ *   5. Jika ada error: simpan ke $errors, render ulang form dengan nilai $old (repopulasi)
+ *   6. Jika valid: hash password, lakukan INSERT ke tabel maintenance_staff
+ *   7. Gedung diset ke NULL jika input kosong (berarti staff handle semua gedung)
+ *   8. Set flash 'success', redirect ke index.php; tangkap PDOException jika gagal
+ *
+ * TABEL DATABASE YANG DIAKSES:
+ *   - maintenance_staff : Target INSERT data akun staff baru beserta password hash
+ *
+ * VARIABEL PENTING:
+ *   - $errors           : Array pesan error validasi; jika kosong proses simpan dijalankan
+ *   - $old              : Array nilai POST sebelumnya untuk mengisi ulang form saat error
+ *   - $nama             : Nama lengkap staff (maks 100 karakter)
+ *   - $email            : Alamat email unik staff; divalidasi format dengan FILTER_VALIDATE_EMAIL
+ *   - $no_telp          : Nomor telepon/WhatsApp staff (maks 20 karakter)
+ *   - $password         : Password plaintext (min 6 karakter); di-hash sebelum disimpan
+ *   - $role             : Role akses: 'Staff' (default) atau 'Admin'
+ *   - $gedung           : Area gedung tugas; string atau NULL jika staff menangani semua gedung
+ *   - $hashedPassword   : Hasil password_hash() yang disimpan ke database
+ *
+ * DEPENDENCY / FILE YANG DI-INCLUDE:
+ *   - db.php          : Koneksi database PDO & helper functions (h(), set_flash())
+ *   - layout_head.php : Header HTML, sidebar navigasi, dan stylesheet utama
+ *   - layout_foot.php : Footer HTML, script JavaScript penutup halaman
+ *
+ * AKSES:
+ *   Hanya bisa diakses oleh Admin yang sudah login. Staff biasa tidak diizinkan
+ *   membuat akun baru.
+ *
+ * CATATAN PENGEMBANG:
+ *   Tidak ada pengecekan duplikasi email sebelum INSERT. Jika kolom Email memiliki
+ *   constraint UNIQUE di database, error duplikasi akan ditangkap oleh catch
+ *   PDOException dan ditampilkan ke user. Disarankan menambahkan pengecekan
+ *   duplikasi email secara eksplisit seperti pola yang digunakan di dispensers/create.php.
+ *
+ * @author   Tim CariGalon
+ * @project  CariGalon — Sistem Monitoring Dispenser Air Kampus
+ * @version  1.0.0
+ * =============================================================================
+ */
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Tambah Staff';
