@@ -93,7 +93,7 @@
 
         .stats-bar {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             border: 1px solid #c1c6d7;
             border-radius: 16px;
             overflow: hidden;
@@ -140,9 +140,8 @@
         }
 
         .bento-c,
-        .bento-d,
-        .bento-e {
-            grid-column: span 4;
+        .bento-d {
+            grid-column: span 6;
         }
 
         @media (max-width: 768px) {
@@ -150,8 +149,7 @@
             .bento-a,
             .bento-b,
             .bento-c,
-            .bento-d,
-            .bento-e {
+            .bento-d {
                 grid-column: span 12;
             }
 
@@ -386,15 +384,7 @@
                     <div class="stat-label">Gedung Dipetakan</div>
                 </div>
 
-                <div class="stat-item">
-                    <div class="stat-num">98%</div>
-                    <div class="stat-label">Uptime Monitoring</div>
-                </div>
 
-                <div class="stat-item">
-                    <div class="stat-num">&lt;15m</div>
-                    <div class="stat-label">Rata-rata Respons</div>
-                </div>
 
             </div>
 
