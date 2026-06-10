@@ -1,114 +1,4 @@
-<?php
-require_once __DIR__ . '/db.php';
 
-// Handle public report submission
-$report_success = null;
-$report_error = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
-    $nama = trim($_POST['nama'] ?? '');
-    $nim = trim($_POST['nim'] ?? '');
-    $dispenser_id = intval($_POST['dispenser_id'] ?? 0);
-    $kategori = $_POST['kategori'] ?? '';
-    $deskripsi = trim($_POST['deskripsi'] ?? '');
-
-    if (!$nama || !$nim || !$dispenser_id || !$kategori || !$deskripsi) {
-        $report_error = "Semua field bertanda * wajib diisi.";
-    } else {
-        $foto_url = null;
-        $upload_ok = true;
-
-        if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-            $fileTmpPath = $_FILES['foto']['tmp_name'];
-            $fileName = $_FILES['foto']['name'];
-            $fileSize = $_FILES['foto']['size'];
-            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
-            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-            if (!in_array($fileExtension, $allowedExtensions)) {
-                $report_error = "Ekstensi file tidak valid. Diperbolehkan: JPG, JPEG, PNG, GIF.";
-                $upload_ok = false;
-            } elseif ($fileSize > 5 * 1024 * 1024) {
-                $report_error = "Ukuran file terlalu besar. Maksimum 5MB.";
-                $upload_ok = false;
-            } else {
-                $uploadFileDir = __DIR__ . '/uploads/';
-                if (!is_dir($uploadFileDir)) {
-                    mkdir($uploadFileDir, 0777, true);
-                }
-                $newFileName = md5(uniqid(time(), true)) . '.' . $fileExtension;
-                $dest_path = $uploadFileDir . $newFileName;
-
-                if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                    $foto_url = 'uploads/' . $newFileName;
-                } else {
-                    $report_error = "Gagal mengunggah foto. Silakan coba lagi.";
-                    $upload_ok = false;
-                }
-            }
-        } elseif (isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $report_error = "Terjadi kesalahan pada file upload: Kode " . $_FILES['foto']['error'];
-            $upload_ok = false;
-        }
-
-        if ($upload_ok) {
-            try {
-                $pdo->beginTransaction();
-
-                // Find or insert reporter
-                $stmt = $pdo->prepare("SELECT Reporter_ID FROM reporter WHERE Nim = :nim");
-                $stmt->execute([':nim' => $nim]);
-                $reporter_id = $stmt->fetchColumn();
-
-                if (!$reporter_id) {
-                    $stmt = $pdo->prepare("INSERT INTO reporter (Nama, Nim) VALUES (:nama, :nim)");
-                    $stmt->execute([':nama' => $nama, ':nim' => $nim]);
-                    $reporter_id = $pdo->lastInsertId();
-                } else {
-                    $stmt = $pdo->prepare("UPDATE reporter SET Nama = :nama WHERE Reporter_ID = :reporter_id");
-                    $stmt->execute([':nama' => $nama, ':reporter_id' => $reporter_id]);
-                }
-
-                // Insert water report
-                $stmt = $pdo->prepare("
-                    INSERT INTO water_report (Reporter_ID, Dispenser_ID, Kategori, Status, Deskripsi_Report, Foto_url, Reported_At)
-                    VALUES (:reporter_id, :dispenser_id, :kategori, 'Pending', :deskripsi, :foto_url, NOW())
-                ");
-                $stmt->execute([
-                    ':reporter_id' => $reporter_id,
-                    ':dispenser_id' => $dispenser_id,
-                    ':kategori' => $kategori,
-                    ':deskripsi' => $deskripsi,
-                    ':foto_url' => $foto_url
-                ]);
-
-                $pdo->commit();
-                $report_success = "Laporan berhasil dikirim! Staff kami akan segera menindaklanjuti.";
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                $report_error = "Gagal mengirim laporan: " . $e->getMessage();
-            }
-        }
-    }
-}
-
-// Fetch dynamic stats for landing page
-try {
-    $total_dispensers = $pdo->query("SELECT COUNT(*) FROM dispenser")->fetchColumn();
-    $total_gedung = $pdo->query("SELECT COUNT(DISTINCT Nama_Gedung) FROM lokasi")->fetchColumn();
-    
-    // Fetch dispensers list for reporting form dropdown
-    $dispensersList = $pdo->query("
-        SELECT d.Dispenser_ID, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai 
-        FROM dispenser d 
-        JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID 
-        ORDER BY l.Nama_Gedung, l.Lantai, d.Kode_Dispenser
-    ")->fetchAll();
-} catch (PDOException $e) {
-    $total_dispensers = 5; 
-    $total_gedung = 2;
-    $dispensersList = [];
-}
-?>
 <!DOCTYPE html>
 <html class="light" lang="id">
 
@@ -416,12 +306,12 @@ try {
             <div class="stats-bar ambient-shadow">
 
                 <div class="stat-item">
-                    <div class="stat-num"><?= htmlspecialchars($total_dispensers) ?></div>
+                    <div class="stat-num"><span id="stat-dispensers">...</span></div>
                     <div class="stat-label">Dispenser Terpantau</div>
                 </div>
 
                 <div class="stat-item">
-                    <div class="stat-num"><?= htmlspecialchars($total_gedung) ?></div>
+                    <div class="stat-num"><span id="stat-gedung">...</span></div>
                     <div class="stat-label">Gedung Dipetakan</div>
                 </div>
 
@@ -598,21 +488,10 @@ try {
                         </p>
                     </div>
 
-                    <?php if ($report_success): ?>
-                        <div class="flex items-center gap-3 px-5 py-4 mb-6 rounded-2xl border bg-emerald-50 border-emerald-300 text-emerald-800 text-sm font-medium">
-                            <span class="material-symbols-outlined text-[20px]">check_circle</span>
-                            <span><?= htmlspecialchars($report_success) ?></span>
-                        </div>
-                    <?php endif; ?>
+                    <div id="form-success" style="display:none"></div>
+                    <div id="form-error" style="display:none"></div>    
 
-                    <?php if ($report_error): ?>
-                        <div class="flex items-center gap-3 px-5 py-4 mb-6 rounded-2xl border bg-red-50 border-red-300 text-red-800 text-sm font-medium">
-                            <span class="material-symbols-outlined text-[20px]">error</span>
-                            <span><?= htmlspecialchars($report_error) ?></span>
-                        </div>
-                    <?php endif; ?>
-
-                    <form method="POST" action="index.php#buat-laporan" enctype="multipart/form-data" class="space-y-6">
+                    <form id="report-form" enctype="multipart/form-data" class="space-y-6">
                         <input type="hidden" name="submit_report" value="1">
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -634,11 +513,7 @@ try {
                                 <select class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer" 
                                         id="dispenser_id" name="dispenser_id" required>
                                     <option value="">— Pilih Lokasi Dispenser —</option>
-                                    <?php foreach ($dispensersList as $d): ?>
-                                        <option value="<?= $d['Dispenser_ID'] ?>">
-                                            <?= htmlspecialchars($d['Nama_Gedung']) ?> (Lt. <?= htmlspecialchars($d['Lantai']) ?>) - <?= htmlspecialchars($d['Kode_Dispenser']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                    
                                 </select>
                             </div>
                             <div>
@@ -856,7 +731,7 @@ document.getElementById('foto').addEventListener('change', function(e) {
     }
 });
 </script>
-
+<script src="js/landing.js"></script>
 </body>
 
 </html>
