@@ -131,7 +131,7 @@ include __DIR__ . '/../_partials/layout_head.php';
 </div>
 
 <!-- Stats Grid (Staff Focus) -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.75rem;">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-7">
     <?php
     $stats = [
         ['icon'=>'assignment_turned_in', 'val'=>$total_my_active_tasks, 'label'=>'Tugas Aktif Saya', 'color'=>'#0058bc', 'bg'=>'#e8f0fe'],
@@ -153,7 +153,7 @@ include __DIR__ . '/../_partials/layout_head.php';
 </div>
 
 <!-- Main content grid -->
-<div style="display:grid;grid-template-columns:1fr 340px;gap:1.25rem;align-items:start;">
+<div class="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start">
 
     <!-- Left Column: Tasks and Laporan -->
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
@@ -349,7 +349,7 @@ include __DIR__ . '/../_partials/layout_head.php';
 <!-- ========================================== -->
 
 <!-- Stats Grid -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.75rem;">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
     <?php
     $stats = [
         ['icon'=>'water_drop',  'val'=>$total_dispensers,  'label'=>'Total Dispenser',  'color'=>'#0058bc', 'bg'=>'#e8f0fe'],
@@ -372,7 +372,7 @@ include __DIR__ . '/../_partials/layout_head.php';
 </div>
 
 <!-- Row 2 stats -->
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.75rem;">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-7">
     <div class="card p-5 flex items-center gap-4">
         <div style="width:48px;height:48px;border-radius:12px;background:#dbeafe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <span class="mat-icon" style="color:#1d4ed8;font-size:24px;">group</span>
@@ -403,7 +403,7 @@ include __DIR__ . '/../_partials/layout_head.php';
 </div>
 
 <!-- Main content grid -->
-<div style="display:grid;grid-template-columns:1fr 340px;gap:1.25rem;align-items:start;">
+<div class="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start">
 
     <!-- Left: Laporan Terbaru -->
     <div class="card">

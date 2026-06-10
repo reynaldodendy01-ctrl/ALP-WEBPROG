@@ -168,17 +168,25 @@ if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
         .page-subtitle { font-size:.875rem; color:#6b7280; margin-top:2px; }
     </style>
 </head>
-<body class="bg-surface min-h-screen flex">
+<body class="bg-surface min-h-screen flex relative overflow-x-hidden">
+
+<!-- Mobile Sidebar Overlay -->
+<div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden transition-opacity duration-300 opacity-0 pointer-events-none"></div>
 
 <!-- ── SIDEBAR ─────────────────────────────────────────── -->
-<aside style="width:260px;min-height:100vh;flex-shrink:0;"
-       class="bg-sidebar flex flex-col fixed top-0 left-0 h-full z-40">
+<aside id="main-sidebar" style="width:260px;min-height:100vh;flex-shrink:0;"
+       class="bg-sidebar flex flex-col fixed top-0 left-0 h-full z-40 transition-transform duration-300 -translate-x-full lg:translate-x-0">
 
     <!-- Logo -->
-    <div class="px-6 py-6 border-b border-white/10">
-        <a href="<?= $base ?>dashboard/index.php"
-           class="text-2xl font-black text-white tracking-tight">CariGalon</a>
-        <p class="text-xs text-slate-400 mt-1">Universitas Ciputra</p>
+    <div class="px-6 py-6 border-b border-white/10 flex items-center justify-between">
+        <div>
+            <a href="<?= $base ?>dashboard/index.php"
+               class="text-2xl font-black text-white tracking-tight">CariGalon</a>
+            <p class="text-xs text-slate-400 mt-1">Universitas Ciputra</p>
+        </div>
+        <button onclick="toggleSidebar()" class="lg:hidden text-white/70 hover:text-white">
+            <span class="mat-icon">close</span>
+        </button>
     </div>
 
     <!-- Nav -->
@@ -208,15 +216,20 @@ if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
 </aside>
 
 <!-- ── MAIN CONTENT ───────────────────────────────────── -->
-<div style="margin-left:260px;" class="flex-1 min-h-screen">
+<div class="flex-1 min-h-screen w-full lg:ml-[260px] transition-all duration-300 flex flex-col">
     <!-- Top bar -->
-    <header class="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-30">
-        <div>
-            <h1 class="text-lg font-bold text-gray-800"><?= h($pageTitle) ?></h1>
-            <p class="text-xs text-gray-400">CariGalon Admin Dashboard</p>
+    <header class="bg-white border-b border-gray-100 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="lg:hidden text-gray-500 hover:bg-gray-100 p-2 rounded-lg">
+                <span class="mat-icon">menu</span>
+            </button>
+            <div>
+                <h1 class="text-lg font-bold text-gray-800"><?= h($pageTitle) ?></h1>
+                <p class="hidden sm:block text-xs text-gray-400">CariGalon Admin Dashboard</p>
+            </div>
         </div>
         <div class="flex items-center gap-3">
-            <span class="text-xs text-gray-400"><?= date('d M Y, H:i') ?> WIB</span>
+            <span class="hidden sm:inline text-xs text-gray-400"><?= date('d M Y, H:i') ?> WIB</span>
             <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
                 <?= strtoupper(mb_substr($_SESSION['staff_name'] ?? 'A', 0, 1)) ?>
             </div>
@@ -228,4 +241,26 @@ if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
     </header>
 
     <!-- Page Content -->
-    <main class="p-8">
+    <main class="p-4 md:p-8 flex-1 w-full overflow-x-hidden">
+        <script>
+            function toggleSidebar() {
+                const sidebar = document.getElementById('main-sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+                sidebar.classList.toggle('-translate-x-full');
+                
+                if (overlay.classList.contains('opacity-0')) {
+                    overlay.classList.remove('hidden');
+                    // Small delay to allow display:block to apply before opacity transition
+                    setTimeout(() => {
+                        overlay.classList.remove('opacity-0', 'pointer-events-none');
+                        overlay.classList.add('opacity-100');
+                    }, 10);
+                } else {
+                    overlay.classList.remove('opacity-100');
+                    overlay.classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                    }, 300);
+                }
+            }
+        </script>
