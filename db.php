@@ -2,6 +2,9 @@
 // ─── CariGalon — Database Connection ───────────────────────────────────────
 // Ubah kredensial sesuai setup lokal kamu (default: XAMPP)
 
+// ─── Timezone: WIB (UTC+7) ──────────────────────────────────────────────────
+date_default_timezone_set('Asia/Jakarta');
+
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'carigalon');
 define('DB_USER', 'root');
@@ -19,6 +22,8 @@ try {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]
     );
+    // Set MySQL session timezone ke WIB (UTC+7)
+    $pdo->exec("SET time_zone = '+07:00'");
 } catch (PDOException $e) {
     die(json_encode([
         'error'   => true,
