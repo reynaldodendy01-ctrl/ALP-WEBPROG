@@ -1,4 +1,4 @@
 <?php
 // Root entry point — redirect ke dashboard
-header('Location: dashboard/index.php');
+header('Location: index.html');
 exit;

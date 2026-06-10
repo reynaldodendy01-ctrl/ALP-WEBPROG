@@ -290,11 +290,11 @@
 
             <div class="flex items-center gap-6">
 
-                <a href="login.html" class="hidden md:block text-sm text-on-surface-variant hover:text-primary transition-colors font-medium">
+                <a href="#" onclick="showServerOnly('dashboard/index.php'); return false;"  class="hidden md:block text-sm text-on-surface-variant hover:text-primary transition-colors font-medium">
                     Dashboard Admin
                 </a>
 
-                <a href="login.html"
+                <a href="#" onclick="showServerOnly('dashboard/index.php'); return false;" 
                     class="bg-primary text-white text-sm font-semibold px-6 py-3 rounded-full hover:shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-center">
                     Masuk Platform
                 </a>
@@ -307,7 +307,10 @@
 
     <!-- MAIN -->
     <main class="pt-32 pb-32">
-
+        <div id="server-only-notice" style="display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#0058bc; color:white; padding:14px 24px; border-radius:99px; font-size:0.875rem; font-weight:600; z-index:9999; align-items:center; gap:8px; box-shadow:0 8px 24px rgba(0,88,188,0.3);">
+            <span class="material-symbols-outlined" style="font-size:18px;">info</span>
+            Fitur ini hanya tersedia di server lokal.
+        </div>
         <!-- HERO -->
         <section class="max-w-container mx-auto px-6 lg:px-16 mb-20 text-center relative overflow-hidden">
 
@@ -423,7 +426,7 @@
             <div class="bento-grid">
 
                 <!-- A -->
-                <div onclick="location.href='dispensers/index.php'"
+                <div onclick="showServerOnly('dispensers/index.php')"
                     class="bento-a bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
@@ -681,13 +684,13 @@
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="dispensers/index.php">
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#" onclick="showServerOnly('dispensers/index.php'); return false;">
                                 Peta Dispenser
                             </a>
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#buat-laporan">
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#" onclick="showServerOnly('galon/index.php'); return false;">
                                 Buat Laporan
                             </a>
                         </li>
@@ -799,6 +802,18 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closePhoto();
         });
+    </script>
+    <script>
+    function showServerOnly(url) {
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isLocal) {
+            location.href = url;
+            return;
+        }
+        const box = document.getElementById('server-only-notice');
+        box.style.display = 'flex';
+        setTimeout(() => box.style.display = 'none', 4000);
+    }
     </script>
     <script src="js/landing.js"></script>
 </body>
