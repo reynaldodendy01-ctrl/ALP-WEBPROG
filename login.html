@@ -99,7 +99,7 @@
 
         <!-- Back to Homepage Link -->
         <div class="text-center mt-6">
-            <a href="index.php" class="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 font-medium transition-colors">
+            <a href="index.html" class="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 font-medium transition-colors">
                 <span class="material-symbols-outlined text-[14px]">arrow_back</span>
                 Kembali ke Beranda Publik
             </a>
@@ -111,6 +111,14 @@
             document.getElementById('error-box').style.display = 'flex';
             document.getElementById('error-msg').textContent = decodeURIComponent(p.get('error'));
         }
+
+        // Vercel warning
+        const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (!isLocal) {
+            document.getElementById('error-box').style.display = 'flex';
+            document.getElementById('error-msg').textContent = 'Login hanya tersedia di server lokal. Versi ini adalah demo frontend saja.';
+        }
     </script>
+    
 </body>
 </html>
