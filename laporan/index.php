@@ -5,6 +5,8 @@ $pageTitle  = 'Laporan';
 $activeMenu = 'laporan';
 define('ROOT', dirname(__DIR__));
 
+$validCategories = ['Galon Kosong', 'Dispenser Rusak / Bocor'];
+
 // ── Filters ─────────────────────────────────────────────────────────────────
 $whereClause = '1=1';
 $params = [];
@@ -20,6 +22,10 @@ if (!empty($_GET['kategori'])) {
 if (!empty($_GET['q'])) {
     $whereClause .= ' AND (rep.Nama LIKE :q OR d.Kode_Dispenser LIKE :q OR wr.Deskripsi_Report LIKE :q)';
     $params[':q'] = '%' . $_GET['q'] . '%';
+}
+if (!empty($_GET['gedung'])) {
+    $whereClause .= ' AND l.Nama_Gedung = :gedung';
+    $params[':gedung'] = $_GET['gedung'];
 }
 
 $stmt = $pdo->prepare("
@@ -38,6 +44,9 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $reports = $stmt->fetchAll();
 
+// Get distinct buildings for filter
+$buildings = $pdo->query("SELECT DISTINCT Nama_Gedung FROM lokasi ORDER BY Nama_Gedung")->fetchAll();
+
 include __DIR__ . '/../_partials/layout_head.php';
 ?>
 
@@ -45,12 +54,9 @@ include __DIR__ . '/../_partials/layout_head.php';
 
 <div class="page-header">
     <div>
-        <div class="page-title">Laporan Kendala Air (Water Reports)</div>
+        <div class="page-title">Laporan Kendala Air</div>
         <div class="page-subtitle"><?= count($reports) ?> laporan masuk</div>
     </div>
-    <a href="create.php" class="btn-primary">
-        <span class="mat-icon" style="font-size:20px">edit_note</span> Buat Laporan
-    </a>
 </div>
 
 <!-- Filter Bar -->
@@ -61,11 +67,20 @@ include __DIR__ . '/../_partials/layout_head.php';
             <input type="text" name="q" value="<?= h($_GET['q'] ?? '') ?>"
                    placeholder="Ketik nama pelapor, dispenser, atau deskripsi..." class="form-input" style="padding:9px 12px;">
         </div>
+        <div style="min-width:160px;">
+            <label class="form-label" style="margin-bottom:4px;font-size:.78rem;">Gedung</label>
+            <select name="gedung" class="form-select" style="padding:9px 12px;">
+                <option value="">Semua Gedung</option>
+                <?php foreach ($buildings as $b): ?>
+                <option value="<?= h($b['Nama_Gedung']) ?>" <?= ($_GET['gedung'] ?? '') === $b['Nama_Gedung'] ? 'selected' : '' ?>><?= h($b['Nama_Gedung']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
         <div style="min-width:170px;">
             <label class="form-label" style="margin-bottom:4px;font-size:.78rem;">Kategori Masalah</label>
             <select name="kategori" class="form-select" style="padding:9px 12px;">
                 <option value="">Semua Kategori</option>
-                <?php foreach (['Galon Kosong','Dispenser Rusak','Kebocoran','Distribusi Tidak Merata','Lainnya'] as $kat): ?>
+                <?php foreach ($validCategories as $kat): ?>
                 <option value="<?= $kat ?>" <?= ($_GET['kategori'] ?? '') === $kat ? 'selected' : '' ?>><?= $kat ?></option>
                 <?php endforeach; ?>
             </select>
@@ -134,9 +149,9 @@ include __DIR__ . '/../_partials/layout_head.php';
                 <td style="font-size:.82rem;max-width:240px;word-wrap:break-word;white-space:normal;"><?= h($r['Deskripsi_Report']) ?></td>
                 <td>
                     <?php if ($r['Foto_url']): ?>
-                        <a href="<?= h(get_foto_url($r['Foto_url'])) ?>" target="_blank">
-                            <img src="<?= h(get_foto_url($r['Foto_url'])) ?>" alt="Foto" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;" class="hover:scale-105 transition-all">
-                        </a>
+                        <img src="<?= h(get_foto_url($r['Foto_url'])) ?>" alt="Foto"
+                             onclick="showPhotoModal('<?= h(get_foto_url($r['Foto_url'])) ?>')"
+                             style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;cursor:pointer;">
                     <?php else: ?>
                         <span style="color:#9ca3af">—</span>
                     <?php endif; ?>
@@ -193,5 +208,24 @@ include __DIR__ . '/../_partials/layout_head.php';
         </tbody>
     </table>
 </div>
+
+<!-- Photo Modal -->
+<div id="photo-modal" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:none;align-items:center;justify-content:center;cursor:pointer;">
+    <div onclick="event.stopPropagation()" style="position:relative;max-width:90vw;max-height:90vh;">
+        <img id="photo-modal-img" src="" alt="Foto" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <button onclick="document.getElementById('photo-modal').style.display='none'" style="position:absolute;top:-12px;right:-12px;background:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;line-height:32px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);">&times;</button>
+    </div>
+</div>
+
+<script>
+function showPhotoModal(src) {
+    document.getElementById('photo-modal-img').src = src;
+    var m = document.getElementById('photo-modal');
+    m.style.display = 'flex';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') document.getElementById('photo-modal').style.display = 'none';
+});
+</script>
 
 <?php include __DIR__ . '/../_partials/layout_foot.php'; ?>

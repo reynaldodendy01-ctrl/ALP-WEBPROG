@@ -1,40 +1,115 @@
-// Load stats and dispensers on page load
+// js/landing.js
+
+var allDispenserStatus = [];
+
 fetch('api/get_landing_data.php')
-  .then(r => r.json())
-  .then(data => {
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+
+    // Stats
     document.getElementById('stat-dispensers').textContent = data.total_dispensers;
     document.getElementById('stat-gedung').textContent = data.total_gedung;
 
-    const select = document.querySelector('#report-form select[name="dispenser_id"]');
-    data.dispensers.forEach(d => {
-      const opt = document.createElement('option');
-      opt.value = d.Dispenser_ID;
-      opt.textContent = d.Kode_Dispenser + ' — ' + d.Nama_Gedung + ' Lt.' + d.Lantai;
-      select.appendChild(opt);
-    });
+    // Fill dispenser dropdown in report form
+    var select = document.getElementById('dispenser_id');
+    if (data.dispensers) {
+      data.dispensers.forEach(function(d) {
+        var opt = document.createElement('option');
+        opt.value = d.Dispenser_ID;
+        opt.textContent = d.Kode_Dispenser + ' — ' + d.Nama_Gedung + ' Lt.' + d.Lantai;
+        select.appendChild(opt);
+      });
+    }
+
+    // Store all dispensers, then show only Tersedia
+    allDispenserStatus = data.dispenser_status || [];
+    renderDispenserTable(allDispenserStatus);
+  })
+  .catch(function() {
+    document.getElementById('report-table-body').innerHTML =
+      '<tr><td colspan="3" style="text-align:center;padding:32px;color:#9ca3af;">Gagal memuat data. Coba refresh halaman.</td></tr>';
   });
 
-// Handle report form submit
+// === Dispenser Status Table (only shows Tersedia) ===
+function renderDispenserTable(dispensers) {
+  var tbody = document.getElementById('report-table-body');
+  var filterGedung = document.getElementById('filter-gedung').value;
+
+  // Only show Tersedia dispensers
+  var filtered = dispensers.filter(function(d) {
+    if (d.status !== 'Tersedia') return false;
+    if (filterGedung && d.Nama_Gedung !== filterGedung) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:40px;color:#9ca3af;">Semua dispenser sedang dalam proses penanganan.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  filtered.forEach(function(d) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td style="font-weight:700;color:#0058bc;">' + escHtml(d.Kode_Dispenser) + '</td>' +
+      '<td>' + escHtml(d.Nama_Gedung) + ' Lt.' + d.Lantai + '</td>' +
+      '<td><span class="badge-status badge-tersedia">Tersedia</span></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// Attach filter event
+var gedungFilter = document.getElementById('filter-gedung');
+if (gedungFilter) {
+  gedungFilter.addEventListener('change', function() {
+    renderDispenserTable(allDispenserStatus);
+  });
+}
+
+// === Report Form ===
 document.getElementById('report-form').addEventListener('submit', function(e) {
   e.preventDefault();
-  const successEl = document.getElementById('form-success');
-  const errorEl = document.getElementById('form-error');
+  var successEl = document.getElementById('form-success');
+  var errorEl   = document.getElementById('form-error');
   successEl.style.display = 'none';
-  errorEl.style.display = 'none';
+  errorEl.style.display   = 'none';
+
+  var submitBtn = this.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Mengirim...';
 
   fetch('api/submit_report.php', {
     method: 'POST',
     body: new FormData(this)
   })
-  .then(r => r.json())
-  .then(data => {
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
     if (data.success) {
-      successEl.textContent = data.message;
+      successEl.textContent = data.message || 'Laporan berhasil dikirim!';
       successEl.style.display = 'block';
       document.getElementById('report-form').reset();
+      document.getElementById('file-preview-container').classList.add('hidden');
     } else {
-      errorEl.textContent = data.message;
+      errorEl.textContent = data.message || 'Gagal mengirim laporan.';
       errorEl.style.display = 'block';
     }
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">send</span> Kirim Laporan Sekarang';
+  })
+  .catch(function() {
+    errorEl.textContent = 'Terjadi kesalahan koneksi. Coba lagi.';
+    errorEl.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">send</span> Kirim Laporan Sekarang';
   });
 });
+
+// Utility
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}

@@ -183,6 +183,78 @@
                 border-bottom: none;
             }
         }
+
+        /* Status badge */
+        .badge-status {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+        .badge-pending   { background: #fef9c3; color: #854d0e; }
+        .badge-diproses  { background: #dbeafe; color: #1e3a8a; }
+        .badge-selesai   { background: #dcfce7; color: #14532d; }
+        .badge-ditolak   { background: #fee2e2; color: #7f1d1d; }
+        .badge-tersedia  { background: #dcfce7; color: #14532d; }
+
+        /* Photo popup */
+        #photo-popup {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.78);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        #photo-popup.open {
+            display: flex;
+        }
+        #photo-popup img {
+            max-width: 90vw;
+            max-height: 85vh;
+            border-radius: 12px;
+            object-fit: contain;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            cursor: default;
+        }
+        #photo-popup-close {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            font-size: 2rem;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        /* Table */
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .85rem;
+        }
+        .report-table th {
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 700;
+            color: #414755;
+            border-bottom: 2px solid #e0e3e5;
+            background: #f7f9fb;
+        }
+        .report-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f2f4;
+            color: #191c1e;
+            vertical-align: middle;
+        }
+        .report-table tbody tr:hover {
+            background: #f7f9fb;
+        }
     </style>
 </head>
 
@@ -205,16 +277,12 @@
                         Fitur Utama
                     </a>
 
-                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="dispensers/index.php">
-                        Daftar Dispenser
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#status-galon">
+                        Status Galon
                     </a>
 
-                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="galon/index.php">
-                        Stok Galon
-                    </a>
-
-                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="laporan/index.php">
-                        Laporan Masalah
+                    <a class="text-sm text-on-surface-variant hover:text-primary transition-colors" href="#buat-laporan">
+                        Buat Laporan
                     </a>
                 </nav>
 
@@ -275,9 +343,9 @@
                 <!-- Buttons -->
                 <div class="flex flex-col sm:flex-row justify-center gap-4 mb-16">
 
-                    <a href="dispensers/index.php"
+                    <a href="#status-galon"
                         class="bg-primary text-white px-10 py-5 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 transition-all font-semibold min-w-[220px] inline-flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">water_drop</span> Cek Status Dispenser
+                        <span class="material-symbols-outlined text-[20px]">water_drop</span> Cek Status Galon
                     </a>
 
                     <a href="#buat-laporan"
@@ -380,31 +448,31 @@
                 </div>
 
                 <!-- B -->
-                <div onclick="location.href='galon/index.php'"
+                <div onclick="location.href='#status-galon'"
                     class="bento-b bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
                         class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
 
                         <span class="material-symbols-outlined text-[32px]">
-                            bar_chart
+                            water_drop
                         </span>
 
                     </div>
 
                     <h3 class="text-3xl font-bold mb-4">
-                        Stok Galon & Analitik
+                        Status Galon Semua Lokasi
                     </h3>
 
                     <p class="text-on-surface-variant leading-relaxed">
-                        Pantau tingkat ketersediaan air pada dispenser dan pastikan pasokan air tidak pernah habis
-                        dengan progress bar persentase stok visual.
+                        Lihat semua laporan galon berdasarkan status dan gedung sekaligus.
+                        Filter laporan agar kamu bisa langsung tahu mana yang sudah beres dan mana yang masih pending.
                     </p>
 
                 </div>
 
                 <!-- C -->
-                <div onclick="location.href='laporan/create.php'"
+                <div onclick="location.href='#buat-laporan'"
                     class="bento-c bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
@@ -421,13 +489,13 @@
                     </h3>
 
                     <p class="text-on-surface-variant leading-relaxed">
-                        Mahasiswa dan staff bisa langsung melaporkan dispenser rusak atau bocor hanya dalam beberapa ketukan.
+                        Temukan galon kosong atau dispenser rusak? Laporkan langsung dari halaman ini dalam beberapa detik.
                     </p>
 
                 </div>
 
                 <!-- D -->
-                <div onclick="location.href='staff/index.php'"
+                <div onclick="location.href='login.html'"
                     class="bento-d bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
@@ -444,36 +512,50 @@
                     </h3>
 
                     <p class="text-on-surface-variant leading-relaxed">
-                        Tugaskan staff pemeliharaan ke dispenser tertentu dengan mudah dan pantau performa kerjanya.
-                    </p>
-
-                </div>
-
-                <!-- E -->
-                <div onclick="location.href='refill/index.php'"
-                    class="bento-e bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
-
-                    <div
-                        class="w-14 h-14 bg-secondary-container text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-
-                        <span class="material-symbols-outlined text-[32px]">
-                            recycling
-                        </span>
-
-                    </div>
-
-                    <h3 class="text-2xl font-bold mb-4">
-                        Riwayat Refill
-                    </h3>
-
-                    <p class="text-on-surface-variant leading-relaxed">
-                        Catat log setiap pengisian ulang galon air secara lengkap beserta volume dan penanggung jawabnya.
+                        Staff mengambil laporan dan menyelesaikan tugas. Ringkasan kinerja staff tersedia di halaman ini.
                     </p>
 
                 </div>
 
             </div>
 
+        </section>
+
+        <!-- STATUS GALON SECTION -->
+        <section id="status-galon" class="max-w-container mx-auto px-6 lg:px-16 mt-32 scroll-mt-24">
+            <div class="mb-3">
+                <span class="text-xs uppercase tracking-[0.2em] font-bold text-primary">Status Galon</span>
+            </div>
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-3xl lg:text-4xl font-black tracking-tight leading-tight">
+                        Galon Tersedia Saat Ini
+                    </h2>
+                    <p class="text-on-surface-variant text-sm mt-1">Dispenser yang tidak memiliki laporan aktif dianggap tersedia.</p>
+                </div>
+                <div class="flex gap-3 flex-wrap">
+                    <select id="filter-gedung" class="text-sm border border-outline-variant rounded-xl px-4 py-2.5 outline-none focus:border-primary bg-white cursor-pointer">
+                        <option value="">Semua Gedung</option>
+                        <option value="Main Building">Main Building</option>
+                        <option value="UC Tower">UC Tower</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl ambient-shadow border border-outline-variant/30 overflow-x-auto">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Dispenser</th>
+                            <th>Gedung / Lantai</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body">
+                        <tr><td colspan="3" style="text-align:center;padding:40px;color:#9ca3af;">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <!-- REPORT SECTION -->
@@ -488,21 +570,21 @@
                         </p>
                     </div>
 
-                    <div id="form-success" style="display:none"></div>
-                    <div id="form-error" style="display:none"></div>    
+                    <div id="form-success" style="display:none;background:#dcfce7;border:1px solid #86efac;border-radius:12px;padding:12px 16px;margin-bottom:16px;color:#14532d;font-weight:600;font-size:.9rem;"></div>
+                    <div id="form-error" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;padding:12px 16px;margin-bottom:16px;color:#7f1d1d;font-weight:600;font-size:.9rem;"></div>
 
                     <form id="report-form" enctype="multipart/form-data" class="space-y-6">
                         <input type="hidden" name="submit_report" value="1">
-                        
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-semibold text-on-surface mb-2" for="nama">Nama Pelapor <span class="text-red-500">*</span></label>
-                                <input class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                                <input class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                                        type="text" id="nama" name="nama" placeholder="Ketik nama Anda…" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-on-surface mb-2" for="nim">NIM Pelapor <span class="text-red-500">*</span></label>
-                                <input class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" 
+                                <input class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
                                        type="text" id="nim" name="nim" placeholder="Ketik NIM Anda…" required>
                             </div>
                         </div>
@@ -510,22 +592,18 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-semibold text-on-surface mb-2" for="dispenser_id">Pilih Dispenser <span class="text-red-500">*</span></label>
-                                <select class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer" 
+                                <select class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer"
                                         id="dispenser_id" name="dispenser_id" required>
                                     <option value="">— Pilih Lokasi Dispenser —</option>
-                                    
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-on-surface mb-2" for="kategori">Kategori Masalah <span class="text-red-500">*</span></label>
-                                <select class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer" 
+                                <select class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all cursor-pointer"
                                         id="kategori" name="kategori" required>
                                     <option value="">— Pilih Kategori Masalah —</option>
                                     <option value="Galon Kosong">Galon Kosong</option>
-                                    <option value="Dispenser Rusak">Dispenser Rusak</option>
-                                    <option value="Kebocoran">Kebocoran</option>
-                                    <option value="Distribusi Tidak Merata">Distribusi Tidak Merata</option>
-                                    <option value="Lainnya">Lainnya</option>
+                                    <option value="Dispenser Rusak / Bocor">Dispenser Rusak / Bocor</option>
                                 </select>
                             </div>
                         </div>
@@ -551,13 +629,13 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-on-surface mb-2" for="deskripsi">Deskripsi Kendala <span class="text-red-500">*</span></label>
-                            <textarea class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none h-28" 
-                                      id="deskripsi" name="deskripsi" placeholder="Detail kendala yang dialami dispenser…" required></textarea>
+                            <label class="block text-sm font-semibold text-on-surface mb-2" for="deskripsi">Deskripsi Kendala (Opsional)</label>
+                            <textarea class="w-full px-4 py-3 border border-outline-variant rounded-xl text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none h-28"
+                                      id="deskripsi" name="deskripsi" placeholder="Detail kendala yang dialami dispenser…"></textarea>
                         </div>
 
                         <div class="text-center pt-4">
-                            <button type="submit" 
+                            <button type="submit"
                                     class="bg-primary text-white text-sm font-semibold px-10 py-4 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all inline-flex items-center gap-2 cursor-pointer">
                                 <span class="material-symbols-outlined text-[18px]">send</span> Kirim Laporan Sekarang
                             </button>
@@ -597,7 +675,7 @@
                     <ul class="flex flex-col gap-4">
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="dashboard/index.php">
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="login.html">
                                 Dashboard Admin
                             </a>
                         </li>
@@ -609,7 +687,7 @@
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="laporan/create.php">
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#buat-laporan">
                                 Buat Laporan
                             </a>
                         </li>
@@ -627,20 +705,14 @@
                     <ul class="flex flex-col gap-4">
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="galon/index.php">
-                                Stok Galon
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="#status-galon">
+                                Status Galon
                             </a>
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="staff/index.php">
-                                Manajemen Staff
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="refill/index.php">
-                                Riwayat Refill
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="login.html">
+                                Login Staff / Admin
                             </a>
                         </li>
 
@@ -667,10 +739,6 @@
                         Kontak
                     </a>
 
-                    <a class="text-on-surface-variant hover:text-primary transition-all" href="#">
-                        Kebijakan Privasi
-                    </a>
-
                 </div>
 
             </div>
@@ -679,59 +747,60 @@
 
     </footer>
 
+    <!-- Photo Popup -->
+    <div id="photo-popup" onclick="closePhoto()">
+        <button id="photo-popup-close" onclick="closePhoto()">&times;</button>
+        <img id="photo-popup-img" src="" alt="Foto laporan" onclick="event.stopPropagation()">
+    </div>
+
     <script>
         window.addEventListener('scroll', () => {
             const header = document.getElementById('top-app-bar');
 
             if (window.scrollY > 20) {
-                header.classList.add(
-                    'h-16',
-                    'shadow-sm'
-                );
-
-                header.classList.remove(
-                    'h-20'
-                );
+                header.classList.add('h-16', 'shadow-sm');
+                header.classList.remove('h-20');
             } else {
-                header.classList.remove(
-                    'h-16',
-                    'shadow-sm'
-                );
-
-                header.classList.add(
-                    'h-20'
-                );
+                header.classList.remove('h-16', 'shadow-sm');
+                header.classList.add('h-20');
             }
         });
     </script>
 
     <script>
-const icon = document.getElementById("radioIcon");
+        const icon = document.getElementById("radioIcon");
+        let checked = true;
+        setInterval(() => {
+            checked = !checked;
+            icon.textContent = checked ? "radio_button_checked" : "radio_button_unchecked";
+        }, 800);
 
-let checked = true;
+        // File input preview
+        document.getElementById('foto').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : '';
+            const container = document.getElementById('file-preview-container');
+            const nameEl = document.getElementById('file-name');
+            if (fileName) {
+                nameEl.textContent = fileName;
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        });
 
-setInterval(() => {
-    checked = !checked;
-
-    icon.textContent = checked
-        ? "radio_button_checked"
-        : "radio_button_unchecked";
-}, 800);
-
-// File input preview
-document.getElementById('foto').addEventListener('change', function(e) {
-    const fileName = e.target.files[0] ? e.target.files[0].name : '';
-    const container = document.getElementById('file-preview-container');
-    const nameEl = document.getElementById('file-name');
-    if (fileName) {
-        nameEl.textContent = fileName;
-        container.classList.remove('hidden');
-    } else {
-        container.classList.add('hidden');
-    }
-});
-</script>
-<script src="js/landing.js"></script>
+        // Photo popup
+        function openPhoto(src) {
+            document.getElementById('photo-popup-img').src = src;
+            document.getElementById('photo-popup').classList.add('open');
+        }
+        function closePhoto() {
+            document.getElementById('photo-popup').classList.remove('open');
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closePhoto();
+        });
+    </script>
+    <script src="js/landing.js"></script>
 </body>
 
 </html>

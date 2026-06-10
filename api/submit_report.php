@@ -26,10 +26,19 @@ try {
     $kategori = $_POST['kategori'] ?? '';
     $deskripsi = trim($_POST['deskripsi'] ?? '');
 
-    if (!$nama || !$nim || !$dispenser_id || !$kategori || !$deskripsi) {
+    if (!$nama || !$nim || !$dispenser_id || !$kategori) {
         echo json_encode([
             'success' => false,
-            'message' => 'Semua field bertanda * wajib diisi.'
+            'message' => 'Nama, NIM, dispenser, dan kategori wajib diisi.'
+        ]);
+        exit;
+    }
+
+    $allowedCategories = ['Galon Kosong', 'Dispenser Rusak / Bocor'];
+    if (!in_array($kategori, $allowedCategories)) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Kategori tidak valid.'
         ]);
         exit;
     }

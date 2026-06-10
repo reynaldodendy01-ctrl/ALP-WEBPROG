@@ -17,6 +17,10 @@ if (!empty($_GET['staff_id'])) {
     $whereClause .= ' AND a.Staff_ID = :staff_id';
     $params[':staff_id'] = $_GET['staff_id'];
 }
+if (!empty($_GET['gedung'])) {
+    $whereClause .= ' AND l.Nama_Gedung = :gedung';
+    $params[':gedung'] = $_GET['gedung'];
+}
 
 $stmt = $pdo->prepare("
     SELECT a.*, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai,
@@ -71,6 +75,14 @@ include __DIR__ . '/../_partials/layout_head.php';
                 <?php endforeach; ?>
             </select>
         </div>
+        <div style="min-width:160px;">
+            <label class="form-label" style="margin-bottom:4px;font-size:.78rem;">Gedung</label>
+            <select name="gedung" class="form-select" style="padding:9px 12px;">
+                <option value="">Semua Gedung</option>
+                <option value="Main Building" <?= ($_GET['gedung'] ?? '') === 'Main Building' ? 'selected' : '' ?>>Main Building</option>
+                <option value="UC Tower" <?= ($_GET['gedung'] ?? '') === 'UC Tower' ? 'selected' : '' ?>>UC Tower</option>
+            </select>
+        </div>
         <button type="submit" class="btn-primary" style="padding:10px 20px;">
             <span class="mat-icon" style="font-size:18px">search</span> Filter
         </button>
@@ -123,9 +135,7 @@ include __DIR__ . '/../_partials/layout_head.php';
                     <?php if ($a['WaterReport_ID']): ?>
                         <div style="display:flex; gap:8px; align-items:center;">
                             <?php if ($a['Foto_url']): ?>
-                                <a href="<?= h(get_foto_url($a['Foto_url'])) ?>" target="_blank" style="flex-shrink:0;">
-                                    <img src="<?= h(get_foto_url($a['Foto_url'])) ?>" alt="Foto" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;display:block;" class="hover:scale-105 transition-all">
-                                </a>
+                                <img src="<?= h(get_foto_url($a['Foto_url'])) ?>" alt="Foto" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;display:block;cursor:pointer;flex-shrink:0;" onclick="openPhotoPopup('<?= h(get_foto_url($a['Foto_url'])) ?>')">
                             <?php endif; ?>
                             <div>
                                 <div style="font-size:.8rem;font-weight:600;color:#c2410c;">[WR #<?= $a['WaterReport_ID'] ?>] <?= h($a['kategori_laporan']) ?></div>
@@ -173,3 +183,26 @@ include __DIR__ . '/../_partials/layout_head.php';
 </div>
 
 <?php include __DIR__ . '/../_partials/layout_foot.php'; ?>
+
+<!-- Photo Popup Modal -->
+<div id="photo-popup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;" onclick="closePhotoPopup()">
+    <div style="position:relative;max-width:90vw;max-height:90vh;" onclick="event.stopPropagation()">
+        <img id="photo-popup-img" src="" alt="Foto" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:12px;display:block;">
+        <button onclick="closePhotoPopup()" style="position:absolute;top:-14px;right:-14px;background:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);">&times;</button>
+    </div>
+</div>
+<script>
+function openPhotoPopup(src) {
+    document.getElementById('photo-popup-img').src = src;
+    var popup = document.getElementById('photo-popup');
+    popup.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+function closePhotoPopup() {
+    document.getElementById('photo-popup').style.display = 'none';
+    document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePhotoPopup();
+});
+</script>

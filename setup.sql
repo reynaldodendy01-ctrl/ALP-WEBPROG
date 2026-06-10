@@ -25,7 +25,8 @@ CREATE TABLE maintenance_staff (
     Email       VARCHAR(100) NOT NULL,
     No_Telp     VARCHAR(20)  NOT NULL,
     Password    VARCHAR(255) NOT NULL,
-    Role        ENUM('Staff', 'Admin') NOT NULL DEFAULT 'Staff'
+    Role        ENUM('Staff', 'Admin') NOT NULL DEFAULT 'Staff',
+    Gedung      VARCHAR(50)  NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ─── 2. Tabel Reporter ───────────────────────────────────────────────
@@ -57,9 +58,9 @@ CREATE TABLE water_report (
     WaterReport_ID   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     Reporter_ID      BIGINT UNSIGNED NOT NULL,
     Dispenser_ID     BIGINT UNSIGNED NOT NULL,
-    Kategori         ENUM('Galon Kosong', 'Dispenser Rusak', 'Kebocoran', 'Distribusi Tidak Merata', 'Lainnya') NOT NULL,
+    Kategori         ENUM('Galon Kosong', 'Dispenser Rusak / Bocor') NOT NULL,
     Status           ENUM('Pending', 'Diproses', 'Selesai', 'Ditolak') NOT NULL DEFAULT 'Pending',
-    Deskripsi_Report VARCHAR(255) NOT NULL,
+    Deskripsi_Report VARCHAR(255) NULL,
     Foto_url         VARCHAR(255) NULL,
     Reported_At      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     Resolved_At      DATETIME NULL,
@@ -128,11 +129,11 @@ INSERT INTO dispenser (Lokasi_ID, Kode_Dispenser, Kategori) VALUES
 
 -- Water Report
 INSERT INTO water_report (Reporter_ID, Dispenser_ID, Kategori, Status, Deskripsi_Report, Foto_url, Reported_At, Resolved_At) VALUES
-(1, 2, 'Galon Kosong',           'Diproses', 'Galon di dekat kantin sudah kosong sejak kemarin sore', NULL, NOW() - INTERVAL 1 DAY, NULL),
-(2, 3, 'Kebocoran',              'Pending',  'Air menetes dari keran panas dispenser koridor timur lt 3', NULL, NOW() - INTERVAL 12 HOUR, NULL),
-(3, 5, 'Dispenser Rusak',        'Diproses', 'Keran dispenser UC Tower lt 4 tidak bisa dibuka sama sekali', NULL, NOW() - INTERVAL 2 DAY, NULL),
-(4, 4, 'Galon Kosong',           'Selesai',  'Dispenser lobby UC Tower kosong sejak pagi', NULL, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 2 DAY),
-(5, 1, 'Distribusi Tidak Merata','Pending',  'Tekanan air sangat rendah pada keran dingin', NULL, NOW() - INTERVAL 3 HOUR, NULL);
+(1, 2, 'Galon Kosong',         'Diproses', 'Galon di dekat kantin sudah kosong sejak kemarin sore', NULL, NOW() - INTERVAL 1 DAY, NULL),
+(2, 3, 'Dispenser Rusak / Bocor', 'Pending',  'Air menetes dari keran panas dispenser koridor timur lt 3', NULL, NOW() - INTERVAL 12 HOUR, NULL),
+(3, 5, 'Dispenser Rusak / Bocor', 'Diproses', 'Keran dispenser UC Tower lt 4 tidak bisa dibuka sama sekali', NULL, NOW() - INTERVAL 2 DAY, NULL),
+(4, 4, 'Galon Kosong',         'Selesai',  'Dispenser lobby UC Tower kosong sejak pagi', NULL, NOW() - INTERVAL 3 DAY, NOW() - INTERVAL 2 DAY),
+(5, 1, 'Galon Kosong',         'Pending',  NULL, NULL, NOW() - INTERVAL 3 HOUR, NULL);
 
 -- Staff Dispenser Assignment
 INSERT INTO staff_dispenser_assignment (Staff_ID, Dispenser_ID, WaterReport_ID, Status, Created_At) VALUES

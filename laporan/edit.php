@@ -61,14 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$dispenser_id) {
         $errors[] = 'Pilih dispenser.';
     }
-    if (!in_array($kategori, ['Galon Kosong', 'Dispenser Rusak', 'Kebocoran', 'Distribusi Tidak Merata', 'Lainnya'])) {
+    if (!in_array($kategori, ['Galon Kosong', 'Dispenser Rusak / Bocor'])) {
         $errors[] = 'Kategori masalah tidak valid.';
     }
     if (!in_array($status, ['Pending', 'Diproses', 'Selesai', 'Ditolak'])) {
         $errors[] = 'Status tidak valid.';
-    }
-    if (!$deskripsi_report) {
-        $errors[] = 'Deskripsi kendala wajib diisi.';
     }
 
     $foto_url = $report['Foto_url'];
@@ -195,7 +192,7 @@ include __DIR__ . '/../_partials/layout_head.php';
                 <label class="form-label">Kategori Masalah <span style="color:#ef4444">*</span></label>
                 <select name="kategori" class="form-select" required>
                     <option value="">— Pilih Masalah —</option>
-                    <?php foreach (['Galon Kosong', 'Dispenser Rusak', 'Kebocoran', 'Distribusi Tidak Merata', 'Lainnya'] as $kat): ?>
+                    <?php foreach (['Galon Kosong', 'Dispenser Rusak / Bocor'] as $kat): ?>
                     <option value="<?= $kat ?>" <?= (($old['Kategori'] ?? ($old['kategori'] ?? '')) === $kat) ? 'selected' : '' ?>><?= $kat ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -216,8 +213,8 @@ include __DIR__ . '/../_partials/layout_head.php';
         </div>
 
         <div class="form-group">
-            <label class="form-label">Deskripsi Kendala <span style="color:#ef4444">*</span></label>
-            <textarea name="deskripsi_report" class="form-textarea" placeholder="Tulis rincian kendala air dispenser di sini…" rows="4" required><?= h($old['Deskripsi_Report'] ?? ($old['deskripsi_report'] ?? '')) ?></textarea>
+            <label class="form-label">Deskripsi Kendala (Opsional)</label>
+            <textarea name="deskripsi_report" class="form-textarea" placeholder="Tulis rincian kendala air dispenser di sini…" rows="4"><?= h($old['Deskripsi_Report'] ?? ($old['deskripsi_report'] ?? '')) ?></textarea>
         </div>
 
         <div style="display:flex;gap:12px;margin-top:8px;">

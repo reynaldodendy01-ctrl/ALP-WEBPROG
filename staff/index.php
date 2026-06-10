@@ -38,6 +38,7 @@ include __DIR__ . '/../_partials/layout_head.php';
             <th>Nama Staff</th>
             <th>Email</th>
             <th>No. Telepon</th>
+            <th>Gedung</th>
             <th>Assignment Aktif</th>
             <th>Total Penugasan</th>
             <th>Aksi</th>
@@ -60,6 +61,13 @@ include __DIR__ . '/../_partials/layout_head.php';
             </td>
             <td style="font-size:.875rem"><?= h($s['Email']) ?></td>
             <td style="font-size:.875rem"><?= h($s['No_Telp']) ?></td>
+            <td>
+                <?php if (!empty($s['Gedung'])): ?>
+                    <span style="font-size:.8rem;font-weight:600;color:#0058bc;background:#e8f0fe;padding:2px 8px;border-radius:8px;"><?= h($s['Gedung']) ?></span>
+                <?php else: ?>
+                    <span style="color:#9ca3af;font-size:.8rem;">Semua</span>
+                <?php endif; ?>
+            </td>
             <td>
                 <span style="font-size:1rem;font-weight:800;color:#c2410c"><?= intval($s['active_assignments']) ?></span>
                 <span style="font-size:.8rem;color:#9ca3af"> aktif</span>

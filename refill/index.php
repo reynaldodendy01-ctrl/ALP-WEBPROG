@@ -27,9 +27,11 @@ include __DIR__ . '/../_partials/layout_head.php';
         <div class="page-title">Riwayat Pengisian Galon (Refill Logs)</div>
         <div class="page-subtitle"><?= count($refills) ?> refill tercatat</div>
     </div>
+    <?php if (!isset($_SESSION['staff_role']) || $_SESSION['staff_role'] !== 'Staff'): ?>
     <a href="create.php" class="btn-primary">
         <span class="mat-icon" style="font-size:20px">recycling</span> Catat Refill Baru
     </a>
+    <?php endif; ?>
 </div>
 
 <div class="card" style="overflow-x:auto;">

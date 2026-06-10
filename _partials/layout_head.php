@@ -194,7 +194,7 @@ if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
 
     <!-- Footer -->
     <div class="p-4 border-t border-white/10 flex flex-col gap-2">
-        <a href="<?= $base ?>index.php"
+        <a href="<?= $base ?>index.html"
            class="sidebar-link" style="font-size:.8rem;">
             <span class="mat-icon" style="font-size:18px">home</span>
             Kembali ke Beranda

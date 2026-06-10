@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $no_telp  = trim($_POST['no_telp'] ?? '');
     $password = $_POST['password'] ?? '';
     $role     = $_POST['role'] ?? 'Staff';
+    $gedung   = $_POST['gedung'] ?? '';
 
     if (!$nama) {
         $errors[] = 'Nama staff wajib diisi.';
@@ -41,8 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("
-                INSERT INTO maintenance_staff (Nama, Email, No_Telp, Password, Role)
-                VALUES (:nama, :email, :no_telp, :password, :role)
+                INSERT INTO maintenance_staff (Nama, Email, No_Telp, Password, Role, Gedung)
+                VALUES (:nama, :email, :no_telp, :password, :role, :gedung)
             ");
             $stmt->execute([
                 ':nama'     => $nama,
@@ -50,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':no_telp'  => $no_telp,
                 ':password' => $hashedPassword,
                 ':role'     => $role,
+                ':gedung'   => $gedung ?: null,
             ]);
 
             set_flash('success', "Staff \"$nama\" berhasil ditambahkan!");
@@ -115,6 +117,15 @@ include __DIR__ . '/../_partials/layout_head.php';
             <select name="role" class="form-select" required>
                 <option value="Staff" <?= ($old['role'] ?? 'Staff') === 'Staff' ? 'selected' : '' ?>>Staff Maintenance</option>
                 <option value="Admin" <?= ($old['role'] ?? '') === 'Admin' ? 'selected' : '' ?>>Super Admin</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Area Gedung Tugas</label>
+            <select name="gedung" class="form-select">
+                <option value="">Semua Gedung</option>
+                <option value="Main Building" <?= ($old['gedung'] ?? '') === 'Main Building' ? 'selected' : '' ?>>Main Building</option>
+                <option value="UC Tower" <?= ($old['gedung'] ?? '') === 'UC Tower' ? 'selected' : '' ?>>UC Tower</option>
             </select>
         </div>
 

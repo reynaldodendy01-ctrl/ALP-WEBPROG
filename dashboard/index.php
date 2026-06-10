@@ -203,9 +203,7 @@ include __DIR__ . '/../_partials/layout_head.php';
                             </td>
                             <td>
                                 <?php if ($t['WaterReport_ID'] && $t['Foto_url']): ?>
-                                    <a href="<?= h(get_foto_url($t['Foto_url'])) ?>" target="_blank">
-                                        <img src="<?= h(get_foto_url($t['Foto_url'])) ?>" alt="Foto" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;" class="hover:scale-105 transition-all">
-                                    </a>
+                                    <img src="<?= h(get_foto_url($t['Foto_url'])) ?>" alt="Foto" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;cursor:pointer;" onclick="openPhotoPopup('<?= h(get_foto_url($t['Foto_url'])) ?>')">
                                 <?php else: ?>
                                     <span style="color:#9ca3af">—</span>
                                 <?php endif; ?>
@@ -291,9 +289,7 @@ include __DIR__ . '/../_partials/layout_head.php';
                             <td style="font-size:.82rem;max-width:200px;word-wrap:break-word;white-space:normal;"><?= h($ur['Deskripsi_Report']) ?></td>
                             <td>
                                 <?php if ($ur['Foto_url']): ?>
-                                    <a href="<?= h(get_foto_url($ur['Foto_url'])) ?>" target="_blank">
-                                        <img src="<?= h(get_foto_url($ur['Foto_url'])) ?>" alt="Foto" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;" class="hover:scale-105 transition-all">
-                                    </a>
+                                    <img src="<?= h(get_foto_url($ur['Foto_url'])) ?>" alt="Foto" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;cursor:pointer;" onclick="openPhotoPopup('<?= h(get_foto_url($ur['Foto_url'])) ?>')">
                                 <?php else: ?>
                                     <span style="color:#9ca3af">—</span>
                                 <?php endif; ?>
@@ -328,9 +324,6 @@ include __DIR__ . '/../_partials/layout_head.php';
         <div class="card" style="padding:20px;">
             <div style="font-size:.95rem;font-weight:700;color:#0b1f3a;margin-bottom:14px;">Aksi Cepat Staff</div>
             <div style="display:flex;flex-direction:column;gap:8px;">
-                <a href="../refill/create.php" class="btn-primary" style="justify-content:center;padding:11px;">
-                    <span class="mat-icon" style="font-size:18px;">recycling</span> Catat Refill Mandiri
-                </a>
                 <a href="../laporan/index.php" class="btn-secondary" style="justify-content:center;padding:11px;">
                     <span class="mat-icon" style="font-size:18px;">report</span> Lihat Semua Laporan
                 </a>
@@ -456,9 +449,7 @@ include __DIR__ . '/../_partials/layout_head.php';
                     <td><span class="badge badge-orange"><?= h($l['Kategori']) ?></span></td>
                     <td>
                         <?php if ($l['Foto_url']): ?>
-                            <a href="<?= h(get_foto_url($l['Foto_url'])) ?>" target="_blank">
-                                <img src="<?= h(get_foto_url($l['Foto_url'])) ?>" alt="Foto" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;" class="hover:scale-105 transition-all">
-                            </a>
+                            <img src="<?= h(get_foto_url($l['Foto_url'])) ?>" alt="Foto" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;display:block;cursor:pointer;" onclick="openPhotoPopup('<?= h(get_foto_url($l['Foto_url'])) ?>')">
                         <?php else: ?>
                             <span style="color:#9ca3af">—</span>
                         <?php endif; ?>
@@ -549,5 +540,29 @@ include __DIR__ . '/../_partials/layout_head.php';
     </div>
 </div>
 <?php endif; ?>
+
+<!-- Photo Popup Modal -->
+<div id="photo-popup" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;" onclick="closePhotoPopup()">
+    <div style="position:relative;max-width:90vw;max-height:90vh;" onclick="event.stopPropagation()">
+        <img id="photo-popup-img" src="" alt="Foto" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:12px;display:block;">
+        <button onclick="closePhotoPopup()" style="position:absolute;top:-14px;right:-14px;background:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);">&times;</button>
+    </div>
+</div>
+
+<script>
+function openPhotoPopup(src) {
+    document.getElementById('photo-popup-img').src = src;
+    var popup = document.getElementById('photo-popup');
+    popup.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+function closePhotoPopup() {
+    document.getElementById('photo-popup').style.display = 'none';
+    document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePhotoPopup();
+});
+</script>
 
 <?php include __DIR__ . '/../_partials/layout_foot.php'; ?>

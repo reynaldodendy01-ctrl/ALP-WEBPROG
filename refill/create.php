@@ -17,6 +17,13 @@ if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
     ");
     $stmt->execute([':staff_id' => $_SESSION['staff_id']]);
     $assignmentsList = $stmt->fetchAll();
+
+    // Staff can only refill if they have an active assignment (from a report)
+    if (empty($assignmentsList)) {
+        set_flash('error', 'Tidak ada penugasan aktif. Ambil laporan terlebih dahulu untuk dapat mencatat refill.');
+        header('Location: ../dashboard/index.php');
+        exit;
+    }
 } else {
     $assignmentsList = $pdo->query("
         SELECT a.Assignment_ID, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai, a.Status

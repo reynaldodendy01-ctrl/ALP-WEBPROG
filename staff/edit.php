@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $no_telp  = trim($_POST['no_telp'] ?? '');
     $password = $_POST['password'] ?? '';
     $role     = $_POST['role'] ?? 'Staff';
+    $gedung   = $_POST['gedung'] ?? '';
 
     if (!$nama) {
         $errors[] = 'Nama staff wajib diisi.';
@@ -53,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("
                     UPDATE maintenance_staff 
-                    SET Nama = :nama, Email = :email, No_Telp = :no_telp, Password = :password, Role = :role
+                    SET Nama = :nama, Email = :email, No_Telp = :no_telp, Password = :password, Role = :role, Gedung = :gedung
                     WHERE Staff_ID = :id
                 ");
                 $stmt->execute([
@@ -62,12 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':no_telp'  => $no_telp,
                     ':password' => $hashedPassword,
                     ':role'     => $role,
+                    ':gedung'   => $gedung ?: null,
                     ':id'       => $id,
                 ]);
             } else {
                 $stmt = $pdo->prepare("
                     UPDATE maintenance_staff 
-                    SET Nama = :nama, Email = :email, No_Telp = :no_telp, Role = :role
+                    SET Nama = :nama, Email = :email, No_Telp = :no_telp, Role = :role, Gedung = :gedung
                     WHERE Staff_ID = :id
                 ");
                 $stmt->execute([
@@ -75,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':email'   => $email,
                     ':no_telp' => $no_telp,
                     ':role'    => $role,
+                    ':gedung'  => $gedung ?: null,
                     ':id'      => $id,
                 ]);
             }
@@ -142,6 +145,15 @@ include __DIR__ . '/../_partials/layout_head.php';
             <select name="role" class="form-select" required>
                 <option value="Staff" <?= (($old['Role'] ?? ($old['role'] ?? 'Staff')) === 'Staff') ? 'selected' : '' ?>>Staff Maintenance</option>
                 <option value="Admin" <?= (($old['Role'] ?? ($old['role'] ?? '')) === 'Admin') ? 'selected' : '' ?>>Super Admin</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Area Gedung Tugas</label>
+            <select name="gedung" class="form-select">
+                <option value="">Semua Gedung</option>
+                <option value="Main Building" <?= (($old['Gedung'] ?? ($old['gedung'] ?? '')) === 'Main Building') ? 'selected' : '' ?>>Main Building</option>
+                <option value="UC Tower" <?= (($old['Gedung'] ?? ($old['gedung'] ?? '')) === 'UC Tower') ? 'selected' : '' ?>>UC Tower</option>
             </select>
         </div>
 

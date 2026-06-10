@@ -24,5 +24,5 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/db.php';
 set_flash('success', 'Anda telah berhasil keluar dari dashboard.');
 
-header('Location: login.php');
+header('Location: login.html');
 exit;
