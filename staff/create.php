@@ -1,16 +1,26 @@
 <?php
+// =========================================================================
+// FILE: staff/create.php
+// FUNGSI: Menampilkan Form Tambah Staff Baru & Menyimpan Datanya (CREATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
 $pageTitle  = 'Tambah Staff';
 $activeMenu = 'staff';
 define('ROOT', dirname(__DIR__));
 
-$errors = [];
-$old    = [];
+// 3. PERSIAPAN VARIABEL ERROR & PENGINGAT KETIKAN
+$errors = []; // Variabel array kosong untuk menampung pesan error jika user salah ketik.
+$old    = []; // Menyimpan ketikan sebelumnya agar form tidak kosong melompong saat terjadi error.
 
+// 4. MENANGKAP PENGIRIMAN DATA SAAT TOMBOL SUBMIT DIKLIK
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $old = $_POST;
+    $old = $_POST; // Timpa $old dengan data dari form
 
+    // Bersihkan ketikan (hapus spasi depan-belakang)
     $nama     = trim($_POST['nama'] ?? '');
     $email    = trim($_POST['email'] ?? '');
     $no_telp  = trim($_POST['no_telp'] ?? '');
@@ -18,9 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $role     = $_POST['role'] ?? 'Staff';
     $gedung   = $_POST['gedung'] ?? '';
 
+    // --- PROSES VALIDASI (CEK SYARAT) ---
+    // Pastikan field penting tidak kosong
     if (!$nama) {
         $errors[] = 'Nama staff wajib diisi.';
     }
+    // Khusus email, kita pakai fitur canggih PHP (FILTER_VALIDATE_EMAIL)
+    // untuk mengecek apakah ketikannya benar-benar format email (punya '@' dan titik).
     if (!$email) {
         $errors[] = 'Email wajib diisi.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -29,31 +43,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$no_telp) {
         $errors[] = 'No. telepon wajib diisi.';
     }
+    // Keamanan: Password tidak boleh terlalu pendek
     if (!$password) {
         $errors[] = 'Password wajib diisi.';
     } elseif (strlen($password) < 6) {
         $errors[] = 'Password minimal 6 karakter.';
     }
+    // Hacker bisa memanipulasi dropdown 'role', pastikan nilainya cuma boleh 2 ini.
     if (!in_array($role, ['Staff', 'Admin'])) {
         $errors[] = 'Role tidak valid.';
     }
 
+    // Jika tidak ada error ($errors kosong), maka simpan!
     if (empty($errors)) {
         try {
+            // ─── 5. CRUD (CREATE) - MENYIMPAN STAFF KE MYSQL ───────────────────
+            // password_hash() MENGACAK password asli menjadi teks aneh sebelum disimpan ke MySQL.
+            // Ini WAJIB, agar jika database diretas, hacker tidak tahu apa password asli si staff.
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            
+            // Siapkan instruksi INSERT
             $stmt = $pdo->prepare("
                 INSERT INTO maintenance_staff (Nama, Email, No_Telp, Password, Role, Gedung)
                 VALUES (:nama, :email, :no_telp, :password, :role, :gedung)
             ");
+            
+            // Masukkan data form untuk menggantikan placeholder (:nama, dll)
             $stmt->execute([
                 ':nama'     => $nama,
                 ':email'    => $email,
                 ':no_telp'  => $no_telp,
-                ':password' => $hashedPassword,
+                ':password' => $hashedPassword, // Simpan password yang sudah DIACAK
                 ':role'     => $role,
-                ':gedung'   => $gedung ?: null,
+                ':gedung'   => $gedung ?: null, // Jika bukan untuk 1 gedung tertentu, jadikan null
             ]);
 
+            // Sukses! Lempar balik pengguna ke daftar staff.
             set_flash('success', "Staff \"$nama\" berhasil ditambahkan!");
             header('Location: index.php');
             exit;

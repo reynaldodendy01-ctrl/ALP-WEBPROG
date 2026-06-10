@@ -1,11 +1,22 @@
 <?php
+// =========================================================================
+// FILE: refill/create.php
+// FUNGSI: Mencatat Isi Ulang Galon Baru & Otomatis Menyelesaikan Tugas
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Catat Refill';
 $activeMenu = 'refill';
 define('ROOT', dirname(__DIR__));
 
+// 2. LOGIKA PILIHAN TUGAS (DROPDOWN)
+// Di form, staff/admin harus memilih: "Refill ini ngerjain tugas yang mana?"
+
+// Jika yang login adalah Staff lapangan:
 if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
+    // Staff HANYA BISA melihat dan memilih Tugas yang ditugaskan khusus untuk dia saja!
     $stmt = $pdo->prepare("
         SELECT a.Assignment_ID, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai, a.Status
         FROM staff_dispenser_assignment a
@@ -18,13 +29,15 @@ if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
     $stmt->execute([':staff_id' => $_SESSION['staff_id']]);
     $assignmentsList = $stmt->fetchAll();
 
-    // Staff can only refill if they have an active assignment (from a report)
+    // Kalau staff ini ternyata lagi nggak punya tugas apa-apa, cegah dia nambah refill secara ngawur.
     if (empty($assignmentsList)) {
         set_flash('error', 'Tidak ada penugasan aktif. Ambil laporan terlebih dahulu untuk dapat mencatat refill.');
         header('Location: ../dashboard/index.php');
         exit;
     }
 } else {
+    // Tapi jika yang login adalah Bos / Admin:
+    // Admin BISA melihat SEMUA tugas yang sedang berjalan untuk dimasukkan log-nya.
     $assignmentsList = $pdo->query("
         SELECT a.Assignment_ID, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai, a.Status
         FROM staff_dispenser_assignment a
@@ -39,27 +52,34 @@ if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
 $errors = [];
 $old    = [];
 
-// Support passing assignment_id via GET
+// 3. FITUR PINTASAN DARI URL
+// Kalau dari halaman dashboard diklik "Refill", maka ID assignment-nya otomatis terpilih di form.
 if (isset($_GET['assignment_id'])) {
     $old['assignment_id'] = intval($_GET['assignment_id']);
 }
 
+// 4. SAAT FORM DIKIRIM OLEH STAFF
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
 
     $assignment_id = intval($_POST['assignment_id'] ?? 0);
     $catatan       = trim($_POST['catatan'] ?? '');
 
-    // Validation
+    // Validasi
     if (!$assignment_id) {
         $errors[] = 'Pilih penugasan (assignment) yang berkaitan.';
     }
 
     if (empty($errors)) {
         try {
+            // ─── 5. MEMULAI TRANSAKSI MYSQL ───────────────────
+            // Kita melakukan 3 HAL SEKALIGUS di sini:
+            // 1) Bikin catatan Refill
+            // 2) Menyelesaikan Tugas Staff (Completed)
+            // 3) Menyelesaikan Laporan Mahasiswa (Selesai)
             $pdo->beginTransaction();
 
-            // Insert refill log
+            // PERINTAH 1: Masukkan data ke tabel refill_logs
             $stmt = $pdo->prepare("
                 INSERT INTO refill_logs (Assignment_ID, Refill_At, Catatan)
                 VALUES (:assignment_id, NOW(), :catatan)
@@ -69,23 +89,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':catatan'       => $catatan ?: null,
             ]);
 
-            // Auto-complete the penugasan when refilled
+            // PERINTAH 2: Otomatis ubah status penugasan (Assignment) si staff jadi 'Completed'
+            // Karena asumsinya: Kalau udah dicatat masuk ke refill_logs, ya berarti kerjanya selesai!
             $pdo->prepare("UPDATE staff_dispenser_assignment SET Status = 'Completed' WHERE Assignment_ID = :asg_id")
                 ->execute([':asg_id' => $assignment_id]);
 
-            // Also, find if this assignment is linked to a water report, and set that report to Completed (Selesai)
+            // PERINTAH 3: Cari tahu apakah tugas ini berawal dari keluhan mahasiswa (Water Report)?
             $stmtAsg = $pdo->prepare("SELECT WaterReport_ID FROM staff_dispenser_assignment WHERE Assignment_ID = :asg_id");
             $stmtAsg->execute([':asg_id' => $assignment_id]);
             $report_id = $stmtAsg->fetchColumn();
 
+            // Jika iya (Ada laporannya), maka otomatis ubah status laporan mahasiswa itu jadi 'Selesai'
             if ($report_id) {
                 $pdo->prepare("UPDATE water_report SET Status = 'Selesai', Resolved_At = NOW() WHERE WaterReport_ID = :wr_id")
                     ->execute([':wr_id' => $report_id]);
             }
 
+            // Simpan semua perubahan
             $pdo->commit();
             set_flash('success', 'Log pengisian galon berhasil dicatat!');
-            header('Location: index.php');
+            header('Location: index.php'); // Lemparkan ke daftar riwayat refill
             exit;
         } catch (PDOException $e) {
             $pdo->rollBack();

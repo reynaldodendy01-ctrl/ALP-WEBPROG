@@ -1,22 +1,32 @@
 <?php
+// =========================================================================
+// FILE: assignments/edit.php
+// FUNGSI: Mengedit Surat Tugas (Assignment) yang Sudah Dibuat (UPDATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Edit Penugasan';
 $activeMenu = 'assignments';
 define('ROOT', dirname(__DIR__));
 
+// 2. MENANGKAP ID TUGAS (Contoh: edit.php?id=5)
 $id = intval($_GET['id'] ?? 0);
 
+// Mencari data tugas yang mau diedit dari database
 $stmt = $pdo->prepare("SELECT * FROM staff_dispenser_assignment WHERE Assignment_ID = :id");
 $stmt->execute([':id' => $id]);
 $assignment = $stmt->fetch();
 
+// Kalau ID ngawur, usir!
 if (!$assignment) {
     set_flash('error', 'Penugasan tidak ditemukan.');
     header('Location: index.php');
     exit;
 }
 
+// 3. MENYIAPKAN DATA UNTUK MENU PILIHAN DI FORM (Sama seperti saat Create)
 $staffList = $pdo->query("SELECT Staff_ID, Nama FROM maintenance_staff ORDER BY Nama")->fetchAll();
 $dispensersList = $pdo->query("
     SELECT d.Dispenser_ID, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai 
@@ -25,6 +35,9 @@ $dispensersList = $pdo->query("
     ORDER BY l.Nama_Gedung, l.Lantai, d.Kode_Dispenser
 ")->fetchAll();
 
+// Menyiapkan laporan apa saja yang bisa dipilih admin.
+// TAPI KHUSUS DI EDIT INI: Kita juga HARUS mengambil laporan yang 'sudah nempel' di tugas ini.
+// Walaupun status laporan itu sudah 'Selesai', karena dia nempel di tugas ini, kita harus tetep memunculkannya di pilihan form.
 $reportsList = $pdo->query("
     SELECT wr.WaterReport_ID, wr.Kategori, rep.Nama AS nama_pelapor, d.Kode_Dispenser
     FROM water_report wr
@@ -35,17 +48,18 @@ $reportsList = $pdo->query("
 ")->fetchAll();
 
 $errors = [];
-$old    = $assignment;
+$old    = $assignment; // Data asli ditampilkan di form HTML
 
+// 4. MENYIMPAN PERUBAHAN
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $old = $_POST;
+    $old = $_POST; // Timpa dengan data baru ketikan admin
 
     $staff_id       = intval($_POST['staff_id'] ?? 0);
     $dispenser_id   = intval($_POST['dispenser_id'] ?? 0);
     $water_report_id = !empty($_POST['water_report_id']) ? intval($_POST['water_report_id']) : null;
     $status         = $_POST['status'] ?? 'Pending';
 
-    // Validation
+    // --- PROSES VALIDASI ---
     if (!$staff_id) {
         $errors[] = 'Pilih staff maintenance.';
     }
@@ -58,8 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
+            // ─── 5. MEMULAI TRANSAKSI MYSQL (UPDATE DUA TABEL) ───────────────────
             $pdo->beginTransaction();
 
+            // PERINTAH 1: Perbarui data di tabel penugasan ('staff_dispenser_assignment')
             $stmt = $pdo->prepare("
                 UPDATE staff_dispenser_assignment 
                 SET Staff_ID = :staff_id, Dispenser_ID = :dispenser_id, WaterReport_ID = :water_report_id, Status = :status
@@ -73,26 +89,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':id'              => $id,
             ]);
 
-            // Auto-update linked water report status based on assignment status
+            // PERINTAH 2: Otomatis memindah status laporan (Kalau tugasnya nempel ke laporan)
             if ($water_report_id) {
                 if ($status === 'Completed') {
+                    // Kalau tugas 'Completed', laporannya ikutan 'Selesai' dan catat waktunya
                     $pdo->prepare("UPDATE water_report SET Status = 'Selesai', Resolved_At = NOW() WHERE WaterReport_ID = :wr_id")
                         ->execute([':wr_id' => $water_report_id]);
                 } elseif ($status === 'On Progress') {
+                    // Kalau tugas 'On Progress', laporannya ikutan 'Diproses', waktu selesai dikosongin
                     $pdo->prepare("UPDATE water_report SET Status = 'Diproses', Resolved_At = NULL WHERE WaterReport_ID = :wr_id")
                         ->execute([':wr_id' => $water_report_id]);
                 } elseif ($status === 'Cancelled') {
+                    // Kalau tugas dibatalin ('Cancelled'), laporannya dikembalikan ke 'Pending'
                     $pdo->prepare("UPDATE water_report SET Status = 'Pending', Resolved_At = NULL WHERE WaterReport_ID = :wr_id")
                         ->execute([':wr_id' => $water_report_id]);
                 }
             }
 
+            // Simpan permanen perubahan!
             $pdo->commit();
             set_flash('success', 'Penugasan berhasil diperbarui!');
             header('Location: index.php');
             exit;
         } catch (PDOException $e) {
-            $pdo->rollBack();
+            $pdo->rollBack(); // Batalkan jika ada yang error di tengah jalan
             $errors[] = 'Gagal memperbarui penugasan: ' . $e->getMessage();
         }
     }

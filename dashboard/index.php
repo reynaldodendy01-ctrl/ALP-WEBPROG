@@ -1,4 +1,10 @@
 <?php
+// =========================================================================
+// FILE: dashboard/index.php
+// FUNGSI: Halaman Utama Setelah Login (Menampilkan Statistik & Tugas)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -9,27 +15,38 @@ $pageTitle  = 'Dashboard';
 $activeMenu = 'dashboard';
 define('ROOT', dirname(__DIR__));
 
+// 2. CEK ROLE (JABATAN) STAFF
+// Kalau di sesi belum ada info 'staff_role', kita ambil dari database.
 if (!isset($_SESSION['staff_role'])) {
     $stmt = $pdo->prepare("SELECT Role FROM maintenance_staff WHERE Staff_ID = :id LIMIT 1");
     $stmt->execute([':id' => $_SESSION['staff_id']]);
-    $_SESSION['staff_role'] = $stmt->fetchColumn() ?: 'Staff';
+    $_SESSION['staff_role'] = $stmt->fetchColumn() ?: 'Staff'; // Default ke 'Staff' kalau kosong
 }
 
+// Variabel ini penting! Ini menentukan tampilan mana yang keluar.
+// Kalau $isStaff = true, tampilkan versi OB/Teknisi lapangan.
+// Kalau $isStaff = false (berarti dia Admin), tampilkan versi Bos/Super Admin.
 $isStaff = ($_SESSION['staff_role'] === 'Staff');
 
+// ─── 3. PERCABANGAN LOGIKA BERDASARKAN ROLE ───────────────────────────────
 if ($isStaff) {
+    // ==========================================================
+    // BAGIAN A: PERINTAH SQL KHUSUS UNTUK STAFF LAPANGAN
+    // ==========================================================
+    $staff_id = $_SESSION['staff_id']; // ID staff yang sedang login
     // ── Queries for Staff ──────────────────────────────────────────────────
     $staff_id = $_SESSION['staff_id'];
 
-    // 1. My active tasks count (Pending or On Progress)
+    // 1. Menghitung JUMLAH TUGAS AKTIF milik staff ini (Status: Pending atau On Progress)
     $stmtMyTasksCount = $pdo->prepare("SELECT COUNT(*) FROM staff_dispenser_assignment WHERE Staff_ID = :staff_id AND Status IN ('Pending', 'On Progress')");
     $stmtMyTasksCount->execute([':staff_id' => $staff_id]);
     $total_my_active_tasks = $stmtMyTasksCount->fetchColumn();
 
-    // 2. Global pending water reports (unclaimed/waiting for staff)
+    // 2. Menghitung JUMLAH LAPORAN PENDING KAMPUS (Laporan yang belum diambil siapa-siapa)
     $total_pending_reports = $pdo->query("SELECT COUNT(*) FROM water_report WHERE Status = 'Pending'")->fetchColumn();
 
-    // 3. My completed refills count
+    // 3. Menghitung TOTAL REFILL (Isi ulang galon) yang SUDAH DISELESAIKAN oleh staff ini
+    // Kita cek tabel 'refill_logs', gabungkan ke 'assignment', dan cari yang staff-nya adalah dia.
     $stmtMyRefillsCount = $pdo->prepare("
         SELECT COUNT(*) FROM refill_logs rl
         JOIN staff_dispenser_assignment sda ON rl.Assignment_ID = sda.Assignment_ID
@@ -38,7 +55,8 @@ if ($isStaff) {
     $stmtMyRefillsCount->execute([':staff_id' => $staff_id]);
     $total_my_completed_refills = $stmtMyRefillsCount->fetchColumn();
 
-    // 4. My active tasks list
+    // 4. MENGAMBIL DAFTAR TUGAS AKTIF SAYA (Untuk ditampilkan di tabel)
+    // Di sini kita JOIN banyak tabel supaya tahu ini dispenser mana, gedung apa, dan apakah ini berasal dari keluhan mahasiswa.
     $stmtMyActiveTasks = $pdo->prepare("
         SELECT a.*, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai,
                wr.Kategori AS kategori_laporan, wr.Deskripsi_Report, wr.Foto_url
@@ -50,9 +68,10 @@ if ($isStaff) {
         ORDER BY a.Created_At DESC
     ");
     $stmtMyActiveTasks->execute([':staff_id' => $staff_id]);
-    $my_active_tasks = $stmtMyActiveTasks->fetchAll();
+    $my_active_tasks = $stmtMyActiveTasks->fetchAll(); // Simpan jadi Array
 
-    // 5. Global pending water reports (for staff to accept)
+    // 5. MENGAMBIL DAFTAR LAPORAN KENDALA MASUK (Belum diambil siapa-siapa)
+    // Supaya staff bisa nge-klik "Ambil Tugas". Dibatasi 10 laporan terbaru saja.
     $unclaimed_reports = $pdo->query("
         SELECT wr.*, rep.Nama AS nama_pelapor, rep.Nim AS nim_pelapor, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai
         FROM water_report wr
@@ -64,7 +83,11 @@ if ($isStaff) {
     ")->fetchAll();
 
 } else {
-    // ── Queries for Admin (Super Admin) ───────────────────────────────────
+    // ==========================================================
+    // BAGIAN B: PERINTAH SQL KHUSUS UNTUK ADMIN
+    // ==========================================================
+    
+    // MENGHITUNG STATISTIK TOTAL UNTUK DITAMPILKAN DI KOTAK-KOTAK ATAS
     $total_dispensers = $pdo->query("SELECT COUNT(*) FROM dispenser")->fetchColumn();
     $total_locations  = $pdo->query("SELECT COUNT(*) FROM lokasi")->fetchColumn();
     $total_staff      = $pdo->query("SELECT COUNT(*) FROM maintenance_staff")->fetchColumn();
@@ -73,9 +96,11 @@ if ($isStaff) {
     $reports_proses   = $pdo->query("SELECT COUNT(*) FROM water_report WHERE Status = 'Diproses'")->fetchColumn();
 
     $assignments_active = $pdo->query("SELECT COUNT(*) FROM staff_dispenser_assignment WHERE Status IN ('Pending', 'On Progress')")->fetchColumn();
+    
+    // Menghitung jumlah refill KHUSUS HARI INI (CURDATE() artinya tanggal hari ini)
     $refills_today      = $pdo->query("SELECT COUNT(*) FROM refill_logs WHERE DATE(Refill_At) = CURDATE()")->fetchColumn();
 
-    // Recent Laporan (Water Reports)
+    // MENGAMBIL 5 LAPORAN TERBARU KAMPUS SECARA GLOBAL
     $recentLaporan = $pdo->query("
         SELECT wr.*, rep.Nama AS nama_pelapor, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai
         FROM water_report wr
@@ -85,7 +110,7 @@ if ($isStaff) {
         ORDER BY wr.Reported_At DESC LIMIT 5
     ")->fetchAll();
 
-    // Recent Refill
+    // MENGAMBIL 5 RIWAYAT PENGISIAN GALON TERBARU
     $recentRefill = $pdo->query("
         SELECT rl.*, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung
         FROM refill_logs rl
@@ -96,7 +121,7 @@ if ($isStaff) {
         ORDER BY rl.Refill_At DESC LIMIT 5
     ")->fetchAll();
 
-    // Active Assignments
+    // MENGAMBIL 5 PENUGASAN AKTIF YANG SEDANG BERJALAN SAAT INI
     $activeAssignmentsList = $pdo->query("
         SELECT a.*, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai
         FROM staff_dispenser_assignment a

@@ -1,27 +1,53 @@
 <?php
+// =========================================================================
+// FILE: dispensers/index.php
+// FUNGSI: Menampilkan Daftar Semua Dispenser (Halaman Utama Dispenser / READ)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
+// 'require_once' digunakan untuk memuat file koneksi database (db.php) ke dalam file ini,
+// supaya kita bisa berinteraksi dengan database MySQL (mengambil data dari tabel).
 require_once __DIR__ . '/../db.php';
 
-$pageTitle  = 'Dispensers';
-$activeMenu = 'dispensers';
-define('ROOT', dirname(__DIR__));
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
+// Variabel ini dibaca oleh file '_partials/layout_head.php' untuk mengatur judul tab
+// dan menentukan menu mana yang menyala di sidebar kiri.
+$pageTitle  = 'Dispensers'; 
+$activeMenu = 'dispensers'; 
+define('ROOT', dirname(__DIR__)); // Menyimpan lokasi folder paling luar
 
-// ── Filters ─────────────────────────────────────────────────────────────────
+// ─── 3. MENGATUR FILTER PENCARIAN ───────────────────────────────────────────
+// Bagian ini menangani kotak pencarian dan pilihan "Semua Gedung" / "Semua Kategori".
+// Awalnya kita buat variabel '$whereClause' berisi '1=1' (artinya: ambil semua data tanpa kecuali).
 $whereClause = '1=1';
-$params = [];
+$params = []; // Tempat menyimpan kata kunci pencarian yang aman dari SQL Injection.
 
+// Jika pengguna memilih filter "Gedung" dari kotak pilihan (misalnya memilih 'UC Tower')
 if (!empty($_GET['gedung'])) {
+    // Tambahkan syarat: "...DAN Nama_Gedung harus sama dengan gedung yang dipilih"
     $whereClause .= ' AND l.Nama_Gedung = :gedung';
+    // Simpan pilihan gedungnya ke dalam placeholder aman ':gedung'
     $params[':gedung'] = $_GET['gedung'];
 }
+// Jika pengguna memilih filter "Kategori" (misal: 'Hot & Cold')
 if (!empty($_GET['kategori'])) {
+    // Tambahkan syarat: "...DAN Kategori harus sama dengan yang dipilih"
     $whereClause .= ' AND d.Kategori = :kategori';
     $params[':kategori'] = $_GET['kategori'];
 }
+// Jika pengguna mengetik kata kunci pencarian (misal mencari 'DISP-123' atau 'Tower')
 if (!empty($_GET['q'])) {
+    // Tambahkan syarat pencarian menggunakan 'LIKE' (mencari teks yang mengandung kata kunci)
+    // Tanda '%' di awal dan akhir artinya: kata kuncinya boleh ada di awal, tengah, atau akhir kalimat.
     $whereClause .= ' AND (d.Kode_Dispenser LIKE :q OR l.Nama_Gedung LIKE :q OR l.Keterangan LIKE :q)';
     $params[':q'] = '%' . $_GET['q'] . '%';
 }
 
+// ─── 4. CRUD (READ) - MENGAMBIL DATA DARI MYSQL ──────────────────────────────────
+// Ini adalah jantung dari halaman ini. Kita mengambil data dispenser dari database.
+// Kita menggunakan klausa 'JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID' 
+// untuk menggabungkan tabel 'dispenser' dan 'lokasi'. Dengan begitu kita bisa tahu nama gedung untuk tiap dispenser.
+// Kita juga menempelkan '$whereClause' yang sudah kita rakit di atas agar filter pencariannya berjalan.
 $stmt = $pdo->prepare("
     SELECT d.*, l.Nama_Gedung, l.Lantai, l.Keterangan,
            (SELECT COUNT(*) FROM staff_dispenser_assignment sda WHERE sda.Dispenser_ID = d.Dispenser_ID AND sda.Status != 'Completed') AS active_assignments
@@ -30,10 +56,16 @@ $stmt = $pdo->prepare("
     WHERE $whereClause
     ORDER BY l.Nama_Gedung, l.Lantai, d.Dispenser_ID
 ");
+
+// Setelah SQL siap, kita jalankan query-nya sambil menyisipkan data saringan ($params).
 $stmt->execute($params);
+
+// fetchAll() mengambil SEMUA hasil baris dari database, 
+// lalu mengubahnya menjadi Array (laci besar berisi daftar laci-laci kecil).
 $dispensers = $stmt->fetchAll();
 
-// Fetch distinct gedung for filter
+// 5. MENGAMBIL DAFTAR NAMA GEDUNG (Untuk menu pilihan dropdown filter)
+// 'DISTINCT' artinya: ambil nama gedung tanpa ada yang dobel.
 $gedungList = $pdo->query("SELECT DISTINCT Nama_Gedung FROM lokasi ORDER BY Nama_Gedung")->fetchAll(PDO::FETCH_COLUMN);
 
 include __DIR__ . '/../_partials/layout_head.php';

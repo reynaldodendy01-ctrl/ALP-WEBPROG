@@ -1,42 +1,63 @@
 <?php
+// =========================================================================
+// FILE: lokasi/create.php
+// FUNGSI: Menampilkan Form Tambah Lokasi Gedung Baru & Menyimpan Datanya (CREATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
 $pageTitle  = 'Tambah Lokasi';
 $activeMenu = 'lokasi';
 define('ROOT', dirname(__DIR__));
 
-$errors = [];
-$old    = [];
+// 3. PERSIAPAN VARIABEL ERROR & PENGINGAT KETIKAN
+$errors = []; // Variabel array (keranjang) kosong. Kalau ada error validasi, pesannya ditaruh sini.
+$old    = []; // Array untuk menyimpan ketikan sebelumnya jika terjadi error.
 
+// 4. MENANGKAP DATA SAAT TOMBOL SUBMIT DIKLIK
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Timpa $old dengan data ketikan baru 
     $old = $_POST;
 
+    // Bersihkan spasi kosong dan ubah ke tipe data yang sesuai
     $nama_gedung = trim($_POST['nama_gedung'] ?? '');
     $lantai      = intval($_POST['lantai'] ?? 0);
     $keterangan  = trim($_POST['keterangan'] ?? '');
 
+    // --- PROSES VALIDASI ---
+    // Pastikan admin sudah mengisi nama gedung
     if (!$nama_gedung) {
         $errors[] = 'Nama gedung wajib diisi.';
     }
+    // Pastikan lantai masuk akal (antara basement 5 sampai lantai 100)
     if ($lantai < -5 || $lantai > 100) {
         $errors[] = 'Lantai harus antara -5 dan 100.';
     }
 
+    // Jika tidak ada error ($errors kosong), simpan ke MySQL
     if (empty($errors)) {
         try {
+            // ─── 5. CRUD (CREATE) - MENYIMPAN DATA LOKASI KE MYSQL ───────────────────
+            // Siapkan query penyisipan data (INSERT INTO).
+            // :nama_gedung, :lantai, :keterangan adalah placeholder (lubang kosong) yang aman dari SQL Injection.
             $stmt = $pdo->prepare("
                 INSERT INTO lokasi (Nama_Gedung, Lantai, Keterangan)
                 VALUES (:nama_gedung, :lantai, :keterangan)
             ");
+            
+            // Masukkan data sebenarnya ke dalam placeholder tersebut
             $stmt->execute([
                 ':nama_gedung' => $nama_gedung,
                 ':lantai'      => $lantai,
-                ':keterangan'  => $keterangan ?: null,
+                ':keterangan'  => $keterangan ?: null, // Jika keterangan dibiarkan kosong, simpan sebagai 'null' (kosong tulen di database)
             ]);
 
+            // Buat notifikasi hijau "berhasil"
             set_flash('success', "Lokasi \"$nama_gedung\" Lt. $lantai berhasil ditambahkan!");
-            header('Location: index.php');
-            exit;
+            header('Location: index.php'); // Lemparkan pengguna balik ke halaman index
+            exit; // Matikan file
         } catch (PDOException $e) {
             $errors[] = 'Gagal menyimpan data: ' . $e->getMessage();
         }

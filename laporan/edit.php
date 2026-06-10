@@ -1,20 +1,31 @@
 <?php
+// =========================================================================
+// FILE: laporan/edit.php
+// FUNGSI: Mengedit Data Laporan & Statusnya (UPDATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// Memulai sesi (session) jika belum dimulai.
+// Sesi ini ibarat 'tanda pengenal' saat admin sedang login.
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Enforce authentication
+// 2. KEAMANAN AKSES TINGKAT LANJUT
+// Jika tidak ada tanda pengenal login, tendang ke halaman login!
 if (!isset($_SESSION['staff_logged_in']) || $_SESSION['staff_logged_in'] !== true) {
     header('Location: ../login.php');
     exit;
 }
 
-// Enforce admin-only access for editing reports
+// Fitur Edit Laporan ini sangat rawan. 
+// Staff biasa TIDAK BOLEH mengedit laporan secara sepihak (mereka harus pakai tombol 'Ambil Tugas').
+// Jadi, kita cek: kalau yang login ini rolenya cuma 'Staff', tolak aksesnya!
 if (isset($_SESSION['staff_role']) && $_SESSION['staff_role'] === 'Staff') {
     set_flash('error', 'Akses ditolak: Hanya Super Admin yang dapat mengubah data laporan secara langsung.');
-    header('Location: index.php');
+    header('Location: index.php'); // Lemparkan kembali ke halaman daftar
     exit;
 }
 
@@ -45,16 +56,18 @@ $dispensersList = $pdo->query("
 $errors = [];
 $old    = $report;
 
+// 6. MENANGKAP PERUBAHAN SAAT TOMBOL "PERBARUI" DIKLIK
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
 
+    // Bersihkan data
     $reporter_id      = intval($_POST['reporter_id'] ?? 0);
     $dispenser_id     = intval($_POST['dispenser_id'] ?? 0);
     $kategori         = $_POST['kategori'] ?? '';
     $status           = $_POST['status'] ?? 'Pending';
     $deskripsi_report = trim($_POST['deskripsi_report'] ?? '');
 
-    // Validation
+    // --- PROSES VALIDASI ---
     if (!$reporter_id) {
         $errors[] = 'Pilih pelapor.';
     }
@@ -68,7 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Status tidak valid.';
     }
 
-    $foto_url = $report['Foto_url'];
+    // --- PROSES UPLOAD FOTO BARU (OPSIONAL) ---
+    $foto_url = $report['Foto_url']; // Secara bawaan (default), simpan foto yang lama.
+
+    // TAPI, kalau ternyata admin mengupload foto baru...
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
         $fileTmpPath = $_FILES['foto']['tmp_name'];
         $fileName = $_FILES['foto']['name'];
@@ -88,11 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newFileName = md5(uniqid(time(), true)) . '.' . $fileExtension;
             $dest_path = $uploadFileDir . $newFileName;
 
+            // Kalau foto baru berhasil masuk ke folder...
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                // Delete old local file if exists
+                // HAPUS FOTO LAMA (Supaya memori server kita tidak kepenuhan gambar sampah)
                 if ($report['Foto_url'] && file_exists(ROOT . '/' . $report['Foto_url'])) {
-                    @unlink(ROOT . '/' . $report['Foto_url']);
+                    @unlink(ROOT . '/' . $report['Foto_url']); // 'unlink' artinya hapus file fisik
                 }
+                // Update $foto_url dengan nama foto yang baru!
                 $foto_url = 'uploads/' . $newFileName;
             } else {
                 $errors[] = "Gagal mengunggah foto. Silakan coba lagi.";
@@ -104,14 +122,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
-            // Determine resolved_at timestamp
-            $resolved_at = $report['Resolved_At'];
+            // ─── 7. MENGHITUNG WAKTU PENYELESAIAN TUGAS (RESOLVED AT) ───────────────────
+            $resolved_at = $report['Resolved_At']; // Anggap waktu selesainya sama dengan sebelumnya
+            
+            // Jika status laporan SEKARANG diubah jadi 'Selesai', TAPI SEBELUMNYA bukan 'Selesai'
             if ($status === 'Selesai' && $report['Status'] !== 'Selesai') {
-                $resolved_at = date('Y-m-d H:i:s');
-            } elseif ($status !== 'Selesai') {
-                $resolved_at = null;
+                $resolved_at = date('Y-m-d H:i:s'); // Catat waktu SEKARANG (Jam & Tanggal ia ngeklik Selesai)
+            } 
+            // Jika status laporan BUKAN Selesai, maka kosongkan saja waktu selesainya
+            elseif ($status !== 'Selesai') {
+                $resolved_at = null; 
             }
 
+            // ─── 8. CRUD (UPDATE) - MENGUBAH DATA LAPORAN DI MYSQL ───────────────────
             $stmt = $pdo->prepare("
                 UPDATE water_report 
                 SET Reporter_ID = :reporter_id, Dispenser_ID = :dispenser_id, Kategori = :kategori, 
@@ -124,9 +147,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':kategori'         => $kategori,
                 ':status'           => $status,
                 ':deskripsi_report' => $deskripsi_report,
-                ':foto_url'         => $foto_url,
-                ':resolved_at'      => $resolved_at,
-                ':id'               => $id,
+                ':foto_url'         => $foto_url,    // Bisa pakai foto lama, atau foto baru
+                ':resolved_at'      => $resolved_at, // Jam dia selesai ngerjain tugas
+                ':id'               => $id,          // Laporan mana yang diupdate
             ]);
 
             set_flash('success', 'Laporan kendala berhasil diperbarui!');

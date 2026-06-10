@@ -1,28 +1,45 @@
 <?php
+// =========================================================================
+// FILE: staff/edit.php
+// FUNGSI: Menampilkan Form Edit Staff & Menyimpan Perubahannya (UPDATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
 $pageTitle  = 'Edit Staff';
 $activeMenu = 'staff';
 define('ROOT', dirname(__DIR__));
 
+// 3. MENANGKAP ID DARI URL (Contoh link: edit.php?id=8)
+// 'intval()' sangat penting untuk mengamankan data dari serangan web, memastikan $id benar-benar angka.
 $id = intval($_GET['id'] ?? 0);
 
+// 4. MENGAMBIL DATA STAFF LAMA DARI DATABASE
+// Kita perlu mencari staff dengan ID tersebut agar kita bisa memunculkan data aslinya di form.
 $stmt = $pdo->prepare("SELECT * FROM maintenance_staff WHERE Staff_ID = :id");
 $stmt->execute([':id' => $id]);
-$staff = $stmt->fetch();
+$staff = $stmt->fetch(); // Mengambil satu baris data
 
+// Jika staff-nya tidak ditemukan (misal ID-nya ngarang)
 if (!$staff) {
     set_flash('error', 'Staff tidak ditemukan.');
-    header('Location: index.php');
+    header('Location: index.php'); // Lemparkan balik ke halaman daftar staff
     exit;
 }
 
+// 5. PERSIAPAN VARIABEL
 $errors = [];
-$old    = $staff;
+$old    = $staff; // Isi $old dengan data asli staff tersebut. Nanti ditampilkan di form pakai value="<..."
 
+
+// 6. MENANGKAP PERUBAHAN SAAT TOMBOL "PERBARUI" DIKLIK
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Timpa $old dengan data ketikan baru (supaya ketikan user nggak hilang kalau ada error)
     $old = $_POST;
 
+    // Bersihkan ketikan baru
     $nama     = trim($_POST['nama'] ?? '');
     $email    = trim($_POST['email'] ?? '');
     $no_telp  = trim($_POST['no_telp'] ?? '');
@@ -30,17 +47,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $role     = $_POST['role'] ?? 'Staff';
     $gedung   = $_POST['gedung'] ?? '';
 
+    // --- PROSES VALIDASI (CEK SYARAT) ---
     if (!$nama) {
         $errors[] = 'Nama staff wajib diisi.';
     }
     if (!$email) {
         $errors[] = 'Email wajib diisi.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Format email tidak valid.';
+        $errors[] = 'Format email tidak valid.'; // PHP bisa tahu kalau emailnya nggak pakai @
     }
     if (!$no_telp) {
         $errors[] = 'No. telepon wajib diisi.';
     }
+    // CEK KHUSUS PASSWORD BARU: Password boleh kosong. TAPI, kalau user mengetik sesuatu (ingin mengganti password),
+    // maka ketikannya tidak boleh kurang dari 6 huruf.
     if ($password !== '' && strlen($password) < 6) {
         $errors[] = 'Password baru minimal 6 karakter.';
     }
@@ -48,9 +68,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Role tidak valid.';
     }
 
+    // Jika semua validasi lolos ($errors kosong), simpan pembaruannya!
     if (empty($errors)) {
         try {
+            // ─── 7. CRUD (UPDATE) - MEMPERBARUI DATA STAFF DI MYSQL ───────────────────
+            // Kita punya DUA skenario UPDATE di sini.
+            
+            // SKENARIO 1: Jika admin ngetik password baru (berarti ingin mengubah password)
             if ($password !== '') {
+                // Acak dulu password barunya sebelum disimpan!
                 $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("
                     UPDATE maintenance_staff 
@@ -61,12 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':nama'     => $nama,
                     ':email'    => $email,
                     ':no_telp'  => $no_telp,
-                    ':password' => $hashedPassword,
+                    ':password' => $hashedPassword, // Simpan password baru
                     ':role'     => $role,
                     ':gedung'   => $gedung ?: null,
-                    ':id'       => $id,
+                    ':id'       => $id, // WAJIB! Agar yang di-update cuma staff ini
                 ]);
             } else {
+                // SKENARIO 2: Jika kolom password dibiarkan kosong
+                // Artinya: "Tolong perbarui Nama, Email, No_Telp, dll TANPA menyentuh Password lama!"
+                // Kita hilangkan tulisan `Password = :password` dari perintah SQL-nya.
                 $stmt = $pdo->prepare("
                     UPDATE maintenance_staff 
                     SET Nama = :nama, Email = :email, No_Telp = :no_telp, Role = :role, Gedung = :gedung
@@ -82,8 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
             }
 
+            // Munculkan notifikasi sukses berwarna hijau
             set_flash('success', "Staff \"$nama\" berhasil diperbarui!");
-            header('Location: index.php');
+            header('Location: index.php'); // Lemparkan balik ke daftar
             exit;
         } catch (PDOException $e) {
             $errors[] = 'Gagal memperbarui staff: ' . $e->getMessage();

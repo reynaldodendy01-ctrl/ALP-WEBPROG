@@ -1,17 +1,30 @@
 <?php
+// =========================================================================
+// FILE: lokasi/index.php
+// FUNGSI: Menampilkan Halaman Daftar Semua Lokasi Gedung (READ)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
 $pageTitle  = 'Lokasi';
-$activeMenu = 'lokasi';
+$activeMenu = 'lokasi'; // Sidebar menu "Lokasi" akan menyala
 define('ROOT', dirname(__DIR__));
 
+// 3. ─── CRUD (READ) - MENGAMBIL DATA LOKASI DARI MYSQL ───────────────────
+// Query SQL ini mengambil semua kolom (l.*) dari tabel 'lokasi'.
+// Kita juga menempelkan tabel 'dispenser' (d) menggunakan 'LEFT JOIN'.
+// Kenapa pakai LEFT JOIN? Supaya lokasi yang belum punya dispenser pun tetap muncul di daftar.
+// Fungsi COUNT(d.Dispenser_ID) akan menghitung ada berapa baris dispenser yang numpang di lokasi tersebut.
+// GROUP BY l.Lokasi_ID memastikan penghitungan dikelompokkan per lokasi.
 $locations = $pdo->query("
     SELECT l.*, COUNT(d.Dispenser_ID) AS jumlah_dispenser
     FROM lokasi l
     LEFT JOIN dispenser d ON d.Lokasi_ID = l.Lokasi_ID
     GROUP BY l.Lokasi_ID
     ORDER BY l.Nama_Gedung, l.Lantai
-")->fetchAll();
+")->fetchAll(); // fetchAll() merubah hasil dari MySQL menjadi array (daftar) di PHP.
 
 include __DIR__ . '/../_partials/layout_head.php';
 ?>

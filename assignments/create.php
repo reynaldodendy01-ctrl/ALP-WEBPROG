@@ -1,11 +1,21 @@
 <?php
+// =========================================================================
+// FILE: assignments/create.php
+// FUNGSI: Admin Menerbitkan Surat Tugas Baru Untuk Staff (CREATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Tambah Penugasan';
 $activeMenu = 'assignments';
 define('ROOT', dirname(__DIR__));
 
+// 2. MENGAMBIL DATA UNTUK MENU PILIHAN (DROPDOWN) DI FORM
+// Mengambil daftar nama staff
 $staffList = $pdo->query("SELECT Staff_ID, Nama FROM maintenance_staff ORDER BY Nama")->fetchAll();
+
+// Mengambil daftar dispenser (lengkap dengan nama gedung & lantai)
 $dispensersList = $pdo->query("
     SELECT d.Dispenser_ID, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai 
     FROM dispenser d 
@@ -13,7 +23,9 @@ $dispensersList = $pdo->query("
     ORDER BY l.Nama_Gedung, l.Lantai, d.Kode_Dispenser
 ")->fetchAll();
 
-// Only load Pending/Diproses water reports, plus reporter name
+// MENGAMBIL DAFTAR LAPORAN YANG BELUM SELESAI
+// Admin bisa memilih: "Surat tugas ini dibuat gara-gara laporan yang mana?"
+// Jadi kita cuma ambil laporan yang statusnya 'Pending' atau 'Diproses'.
 $reportsList = $pdo->query("
     SELECT wr.WaterReport_ID, wr.Kategori, rep.Nama AS nama_pelapor, d.Kode_Dispenser
     FROM water_report wr
@@ -26,15 +38,20 @@ $reportsList = $pdo->query("
 $errors = [];
 $old    = [];
 
+// 3. MENANGKAP DATA SAAT TOMBOL "BUAT PENUGASAN" DIKLIK
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $old = $_POST;
+    $old = $_POST; // Simpan ketikan admin kalau ada error
 
+    // Tangkap isi form
     $staff_id       = intval($_POST['staff_id'] ?? 0);
     $dispenser_id   = intval($_POST['dispenser_id'] ?? 0);
-    $water_report_id = !empty($_POST['water_report_id']) ? intval($_POST['water_report_id']) : null;
     $status         = $_POST['status'] ?? 'Pending';
+    
+    // Untuk laporan, sifatnya opsional. Bisa diisi, bisa tidak.
+    // (Bisa jadi staff disuruh muter keliling ngecek rutin walau nggak ada yang lapor)
+    $water_report_id = !empty($_POST['water_report_id']) ? intval($_POST['water_report_id']) : null;
 
-    // Validation
+    // --- PROSES VALIDASI ---
     if (!$staff_id) {
         $errors[] = 'Pilih staff maintenance.';
     }
@@ -47,8 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
+            // ─── 4. MEMULAI TRANSAKSI MYSQL ───────────────────
+            // Kita pakai transaksi karena selain BIKIN TUGAS, kita juga mau MENGUBAH STATUS LAPORAN.
+            // Harus dilakukan berbarengan!
             $pdo->beginTransaction();
 
+            // PERINTAH 1: Masukkan data ke tabel penugasan (Assignment)
             $stmt = $pdo->prepare("
                 INSERT INTO staff_dispenser_assignment (Staff_ID, Dispenser_ID, WaterReport_ID, Status, Created_At)
                 VALUES (:staff_id, :dispenser_id, :water_report_id, :status, NOW())
@@ -60,20 +81,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':status'          => $status,
             ]);
 
-            // If a water report is linked, we can automatically update its status to 'Diproses'
+            // PERINTAH 2: Otomatis memindah status laporan (Kalau penugasan ini dicolokkin ke suatu laporan)
             if ($water_report_id && $status === 'On Progress') {
+                // Kalau admin buat tugas dan statusnya 'On Progress', laporannya ikutan jadi 'Diproses'
                 $pdo->prepare("UPDATE water_report SET Status = 'Diproses' WHERE WaterReport_ID = :wr_id")
                     ->execute([':wr_id' => $water_report_id]);
             } elseif ($water_report_id && $status === 'Completed') {
+                // Kalau admin buat tugas dan statusnya ajaib langsung 'Completed', laporannya ikutan 'Selesai'
                 $pdo->prepare("UPDATE water_report SET Status = 'Selesai', Resolved_At = NOW() WHERE WaterReport_ID = :wr_id")
                     ->execute([':wr_id' => $water_report_id]);
             }
 
+            // Simpan semua perubahan
             $pdo->commit();
             set_flash('success', 'Penugasan berhasil dibuat!');
-            header('Location: index.php');
+            header('Location: index.php'); // Lempar balik
             exit;
         } catch (PDOException $e) {
+            // Kalau gagal, batalkan semuanya!
             $pdo->rollBack();
             $errors[] = 'Gagal menyimpan penugasan: ' . $e->getMessage();
         }

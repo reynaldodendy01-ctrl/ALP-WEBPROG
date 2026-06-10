@@ -1,16 +1,24 @@
 <?php
+// =========================================================================
+// FILE: reporters/edit.php
+// FUNGSI: Mengedit Data Pelapor yang Sudah Terdaftar (UPDATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Edit Pelapor';
 $activeMenu = 'reporters';
 define('ROOT', dirname(__DIR__));
 
+// 2. MENCARI DATA LAMA PELAPOR (BERDASARKAN ID DI URL)
 $id = intval($_GET['id'] ?? 0);
 
 $stmt = $pdo->prepare("SELECT * FROM reporter WHERE Reporter_ID = :id");
 $stmt->execute([':id' => $id]);
 $reporter = $stmt->fetch();
 
+// Kalau diotak-atik URL-nya dan ID-nya ga nemu:
 if (!$reporter) {
     set_flash('error', 'Pelapor tidak ditemukan.');
     header('Location: index.php');
@@ -18,14 +26,16 @@ if (!$reporter) {
 }
 
 $errors = [];
-$old    = $reporter;
+$old    = $reporter; // Tampilin data lama di Form
 
+// 3. MENYIMPAN PERUBAHAN
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $old = $_POST;
+    $old = $_POST; // Timpa dengan ketikan baru
 
     $nama = trim($_POST['nama'] ?? '');
     $nim  = trim($_POST['nim'] ?? '');
 
+    // --- Validasi ---
     if (!$nama) {
         $errors[] = 'Nama pelapor wajib diisi.';
     }
@@ -33,7 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'NIM pelapor wajib diisi.';
     }
 
-    // Check duplicate NIM if changed
+    // --- Cek Duplikasi NIM ---
+    // Logikanya: Kita cuma cek duplikat kalau user MENGGANTI NIM-nya.
+    // Kalau NIM-nya nggak diubah (sama kayak data lama), ya ngga usah dicek kembar.
     if ($nim && $nim !== $reporter['Nim']) {
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM reporter WHERE Nim = :nim");
         $stmt->execute([':nim' => $nim]);
@@ -44,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
+            // 4. CRUD (UPDATE) - PERBARUI DATA MYSQL
             $stmt = $pdo->prepare("
                 UPDATE reporter 
                 SET Nama = :nama, Nim = :nim

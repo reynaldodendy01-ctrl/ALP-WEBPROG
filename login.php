@@ -1,8 +1,13 @@
 <?php
+// Memulai sesi (agar kita bisa mengecek memori server, apakah ada user yang sedang login)
 session_start();
+
+// Mengecek jika di dalam memori sesi ada kunci bernama 'staff_id' 
+// Artinya: Staff ini sudah berhasil login sebelumnya.
 if (isset($_SESSION['staff_id'])) {
+    // Karena sudah login, jangan biarkan dia di halaman login ini lagi, lempar dia ke dashboard!
     header("Location: dashboard/index.php");
-    exit;
+    exit; // Stop memproses sisa file ini.
 }
 ?>
 <!DOCTYPE html>
@@ -69,14 +74,20 @@ if (isset($_SESSION['staff_id'])) {
 
             
 
+            <!-- FORM LOGIN: Saat diklik (submit), datanya akan dikirim pakai metode 'POST' menuju file 'login_process.php' -->
+            <!-- onsubmit="return handleLogin(event)" mengeksekusi kode Javascript tambahan di bawah layar sebelum data benar-benar pergi -->
             <form method="POST" action="login_process.php" onsubmit="return handleLogin(event)" class="space-y-5">
+                <!-- Box berwarna merah ini akan muncul dari Javascript jika gagal login (awalnya display:none atau disembunyikan) -->
                 <div id="error-box" style="display:none" class="flex items-start gap-3 p-4 mb-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm font-medium">
                     <span class="material-symbols-outlined text-[20px] shrink-0">error</span>
                     <span id="error-msg"></span>
                 </div>
+                
+                <!-- BLOK INPUT EMAIL -->
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2" for="email">Email Staff</label>
                     <div class="relative">
+                        <!-- name="email" adalah "nama variabel" yang nanti akan ditangkap oleh login_process.php pakai $_POST['email'] -->
                         <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">mail</span>
                         <input type="email" id="email" name="email" value="" required
                                class="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-sm text-white placeholder-slate-500 glow-input outline-none transition-all"
@@ -84,9 +95,12 @@ if (isset($_SESSION['staff_id'])) {
                     </div>
                 </div>
 
+                <!-- BLOK INPUT PASSWORD -->
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2" for="password">Password</label>
                     <div class="relative">
+                        <!-- name="password" adalah variabel yang ditangkap oleh login_process.php pakai $_POST['password'] -->
+                        <!-- type="password" gunanya agar ketikan disensor jadi bulat-bulat hitam -->
                         <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">lock_open</span>
                         <input type="password" id="password" name="password" required
                                class="w-full pl-12 pr-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-sm text-white placeholder-slate-500 glow-input outline-none transition-all"
@@ -94,6 +108,7 @@ if (isset($_SESSION['staff_id'])) {
                     </div>
                 </div>
 
+                <!-- TOMBOL SUBMIT LOGIN -->
                 <div class="pt-2">
                     <button type="submit"
                             class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3.5 px-6 rounded-xl text-sm shadow-lg hover:shadow-blue-500/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer">
@@ -113,27 +128,39 @@ if (isset($_SESSION['staff_id'])) {
         </div>
     </div>
     <script>
+        // ─── BLOK JAVASCRIPT: Menangani tampilan pesan Error dan Pengecekan Lokasi Server
+        
+        // Membaca isi alamat URL. Jika alamatnya 'login.php?error=Salah%20password'
         const p = new URLSearchParams(location.search);
         if (p.get('error')) {
+            // Maka kita memunculkan kotak warna merah (yang awalnya display:none)
             document.getElementById('error-box').style.display = 'flex';
+            // Lalu kita ganti isinya dengan tulisan dari error di alamat link.
             document.getElementById('error-msg').textContent = decodeURIComponent(p.get('error'));
         }
 
-        // Vercel warning
+        // Pengecekan Khusus Vercel:
+        // Karena Vercel hanya hosting frontend tanpa database PHP aktif di project ini,
+        // Kita cegah form dikirim jika tidak sedang dites secara offline pakai XAMPP.
+        // 'localhost' atau '127.0.0.1' adalah tanda bahwa file ini dibuka via XAMPP/lokal.
         const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         if (!isLocal) {
             document.getElementById('error-box').style.display = 'flex';
             document.getElementById('error-msg').textContent = 'Login hanya tersedia di server lokal. Versi ini adalah demo frontend saja.';
         }
+        
+        // Fungsi handleLogin() ini dicek setiap kali tombol submit ditekan.
+        // Kalau return 'false', form tidak jadi terkirim ke login_process.php.
+        // Kalau return 'true', form lolos dan PHP diizinkan memproses data.
         function handleLogin(e) {
             const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
             if (!isLocal) {
-                e.preventDefault();
+                e.preventDefault(); // Mencegah pindah halaman
                 document.getElementById('error-box').style.display = 'flex';
                 document.getElementById('error-msg').textContent = 'Login hanya tersedia di server lokal. Versi ini adalah demo frontend saja.';
-                return false;
+                return false; // Gagal form!
             }
-            return true;
+            return true; // Sukses form jalan!
         }
     </script>
     

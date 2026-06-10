@@ -1,10 +1,19 @@
 <?php
+// =========================================================================
+// FILE: reporters/index.php
+// FUNGSI: Menampilkan Daftar Mahasiswa/Dosen yang Pernah Melapor (READ)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Reporters';
 $activeMenu = 'reporters';
 define('ROOT', dirname(__DIR__));
 
+// 2. ─── CRUD (READ) - MENGAMBIL DATA PELAPOR DARI MYSQL ───────────────────
+// Selain mengambil data pelapor, kita pakai trik COUNT dan GROUP BY
+// Supaya bisa menghitung: "Si A ini udah pernah lapor berapa kali sih?"
 $reporters = $pdo->query("
     SELECT r.*, COUNT(wr.WaterReport_ID) AS jumlah_laporan
     FROM reporter r

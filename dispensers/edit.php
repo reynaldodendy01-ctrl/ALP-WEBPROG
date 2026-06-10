@@ -1,35 +1,53 @@
 <?php
+// =========================================================================
+// FILE: dispensers/edit.php
+// FUNGSI: Menampilkan Form Edit Dispenser & Menyimpan Perubahan ke MySQL (UPDATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
 $pageTitle  = 'Edit Dispenser';
 $activeMenu = 'dispensers';
 define('ROOT', dirname(__DIR__));
 
+// 3. MENANGKAP ID DARI URL (Contoh link: edit.php?id=5)
+// 'intval()' sangat penting untuk merubah isi '?id=5' benar-benar menjadi angka bulat '5', 
+// bukan teks atau kode aneh yang diselipkan hacker.
 $id = intval($_GET['id'] ?? 0);
 
+// 4. MENGAMBIL DATA DISPENSER LAMA DARI DATABASE
+// Kita perlu mencari dispenser dengan ID tersebut agar kita bisa memunculkan data lamanya di dalam kotak-kotak form HTML.
 $stmt = $pdo->prepare("SELECT * FROM dispenser WHERE Dispenser_ID = :id");
 $stmt->execute([':id' => $id]);
-$dispenser = $stmt->fetch();
+$dispenser = $stmt->fetch(); // 'fetch()' mengambil hanya SATU baris data (karena ID pasti unik).
 
+// Jika dispensernya ternyata tidak ada (mungkin sudah dihapus orang lain atau salah ketik ID)
 if (!$dispenser) {
-    set_flash('error', 'Dispenser tidak ditemukan.');
-    header('Location: index.php');
+    set_flash('error', 'Dispenser tidak ditemukan.'); // Tampilkan kotak pesan merah
+    header('Location: index.php'); // Lemparkan kembali ke halaman daftar
     exit;
 }
 
+// Mengambil daftar lokasi (untuk menu pilihan/dropdown Gedung dan Lantai di HTML nanti)
 $locationsList = $pdo->query("SELECT Lokasi_ID, Nama_Gedung, Lantai FROM lokasi ORDER BY Nama_Gedung, Lantai")->fetchAll();
 
+// 5. PERSIAPAN VARIABEL ERROR & PENGINGAT FORM
 $errors = [];
-$old    = $dispenser;
+$old    = $dispenser; // Array '$old' kita isi dengan data asli dari database. Nanti akan ditampilkan di kotak input (value="<?=...").
 
+// 6. MENANGKAP PERUBAHAN DATA SETELAH TOMBOL "PERBARUI" DIKLIK
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Timpa $old dengan data ketikan baru (supaya kalau ada error, ketikan user nggak hilang)
     $old = $_POST;
 
+    // Bersihkan data ketikan
     $lokasi_id      = intval($_POST['lokasi_id'] ?? 0);
     $kode_dispenser = trim($_POST['kode_dispenser'] ?? '');
     $kategori       = $_POST['kategori'] ?? '';
 
-    // Validation
+    // --- PROSES VALIDASI (CEK SYARAT) ---
     if (!$lokasi_id) {
         $errors[] = 'Pilih lokasi dispenser.';
     }
@@ -40,7 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Kategori tidak valid.';
     }
 
-    // Check duplicate Kode_Dispenser if changed
+    // Cek duplikat Kode Dispenser
+    // Tapiii.. pastikan kodenya dicek KECUALI jika tidak diubah (sama seperti kode lamanya).
+    // Karena kalau kodenya sama dengan dirinya sendiri, ya jelas terdeteksi "sudah ada".
     if ($kode_dispenser && $kode_dispenser !== $dispenser['Kode_Dispenser']) {
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM dispenser WHERE Kode_Dispenser = :code");
         $stmt->execute([':code' => $kode_dispenser]);
@@ -49,22 +69,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Jika semua validasi lolos ($errors kosong), simpan pembaruannya!
     if (empty($errors)) {
         try {
+            // ─── CRUD (UPDATE) - Memperbarui Data di MySQL ──────────────────────
+            // Kita menggunakan perintah 'UPDATE ... SET ... WHERE ...'
+            // 'WHERE Dispenser_ID = :id' SANGAT FATAL. Jika lupa ditaruh, 
+            // maka SEMUA Ratusan Dispenser di database namanya akan berubah sama persis!
             $stmt = $pdo->prepare("
                 UPDATE dispenser 
                 SET Lokasi_ID = :lokasi_id, Kode_Dispenser = :kode_dispenser, Kategori = :kategori
                 WHERE Dispenser_ID = :id
             ");
+            
+            // Mengirim data baru yang diketik user
             $stmt->execute([
                 ':lokasi_id'      => $lokasi_id,
                 ':kode_dispenser' => $kode_dispenser,
                 ':kategori'       => $kategori,
-                ':id'             => $id,
+                ':id'             => $id, // Penting! Jangan lupa ngirim ID-nya.
             ]);
 
+            // Munculkan notifikasi hijau
             set_flash('success', "Dispenser \"$kode_dispenser\" berhasil diperbarui!");
-            header('Location: index.php');
+            header('Location: index.php'); // Balik ke halaman utama dispenser
             exit;
         } catch (PDOException $e) {
             $errors[] = 'Gagal memperbarui dispenser: ' . $e->getMessage();

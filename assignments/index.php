@@ -1,27 +1,47 @@
 <?php
+// =========================================================================
+// FILE: assignments/index.php
+// FUNGSI: Menampilkan Daftar Surat Tugas (Assignments) untuk Staff
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Assignments';
 $activeMenu = 'assignments';
 define('ROOT', dirname(__DIR__));
 
-// ── Filters ─────────────────────────────────────────────────────────────────
+// 2. ── MENGATUR FILTER PENCARIAN ─────────────────────────────────────────────────
+// Siapkan keranjang filter. Defaultnya '1=1' (Ambil semua)
 $whereClause = '1=1';
 $params = [];
 
+// Filter berdasarkan Status (Pending / On Progress / dll)
 if (!empty($_GET['status'])) {
     $whereClause .= ' AND a.Status = :status';
     $params[':status'] = $_GET['status'];
 }
+// Filter berdasarkan Nama Staff
 if (!empty($_GET['staff_id'])) {
     $whereClause .= ' AND a.Staff_ID = :staff_id';
     $params[':staff_id'] = $_GET['staff_id'];
 }
+// Filter berdasarkan Gedung tempat dispenser berada
 if (!empty($_GET['gedung'])) {
     $whereClause .= ' AND l.Nama_Gedung = :gedung';
     $params[':gedung'] = $_GET['gedung'];
 }
 
+// 3. ─── CRUD (READ) - MENGAMBIL DATA PENUGASAN DARI MYSQL ───────────────────
+// Menggabungkan data dari tabel 'staff_dispenser_assignment' dengan:
+// - maintenance_staff (untuk ambil nama staff)
+// - dispenser (untuk ambil kode dispenser)
+// - lokasi (untuk tahu gedungnya)
+// - water_report (untuk tahu tugas ini dari laporan yang mana)
+//
+// Dan perhatikan Sub-Query ini:
+// (SELECT COUNT(*) FROM refill_logs rl WHERE rl.Assignment_ID = a.Assignment_ID) AS total_refills
+// Artinya: "Tolong sekalian hitung, di tugas ini sudah ada berapa kali isi ulang galon yang dicatat?"
 $stmt = $pdo->prepare("
     SELECT a.*, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai,
            wr.Kategori AS kategori_laporan, wr.Deskripsi_Report, wr.Foto_url,
@@ -34,9 +54,10 @@ $stmt = $pdo->prepare("
     WHERE $whereClause
     ORDER BY a.Created_At DESC
 ");
-$stmt->execute($params);
-$assignments = $stmt->fetchAll();
+$stmt->execute($params); // Jalankan
+$assignments = $stmt->fetchAll(); // Simpan hasil pencarian ke array $assignments
 
+// Ambil juga daftar nama staff untuk menu Filter dropdown di HTML
 $staffList = $pdo->query("SELECT Staff_ID, Nama FROM maintenance_staff ORDER BY Nama")->fetchAll();
 
 include __DIR__ . '/../_partials/layout_head.php';

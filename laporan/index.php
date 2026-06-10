@@ -1,33 +1,57 @@
 <?php
+// =========================================================================
+// FILE: laporan/index.php
+// FUNGSI: Menampilkan Halaman Daftar Semua Laporan Masalah (READ)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
 $pageTitle  = 'Laporan';
 $activeMenu = 'laporan';
 define('ROOT', dirname(__DIR__));
 
 $validCategories = ['Galon Kosong', 'Dispenser Rusak / Bocor'];
 
-// ── Filters ─────────────────────────────────────────────────────────────────
+// 3. ── MENGATUR FILTER PENCARIAN ─────────────────────────────────────────────────
+// Sama seperti halaman dispenser, kita buat keranjang filter.
+// '1=1' artinya ambil semua data. Nanti kita tambahkan syarat lain pakai 'AND'.
 $whereClause = '1=1';
 $params = [];
 
+// Jika user memfilter Status (Pending/Selesai/dsb)
 if (!empty($_GET['status'])) {
     $whereClause .= ' AND wr.Status = :status';
     $params[':status'] = $_GET['status'];
 }
+// Jika user memfilter Kategori (Galon Kosong/Dispenser Rusak)
 if (!empty($_GET['kategori'])) {
     $whereClause .= ' AND wr.Kategori = :kategori';
     $params[':kategori'] = $_GET['kategori'];
 }
+// Jika user ngetik kata pencarian (nama pelapor, kode dispenser, atau isi laporan)
 if (!empty($_GET['q'])) {
     $whereClause .= ' AND (rep.Nama LIKE :q OR d.Kode_Dispenser LIKE :q OR wr.Deskripsi_Report LIKE :q)';
     $params[':q'] = '%' . $_GET['q'] . '%';
 }
+// Jika user memfilter nama gedung
 if (!empty($_GET['gedung'])) {
     $whereClause .= ' AND l.Nama_Gedung = :gedung';
     $params[':gedung'] = $_GET['gedung'];
 }
 
+// 4. ─── CRUD (READ) - MENGAMBIL DATA LAPORAN DARI DATABASE ───────────────────
+// Query ini adalah "Raja"-nya Query di project ini karena ia menggabungkan BANYAK tabel.
+// Tujuannya agar kita bisa melihat semua info lengkap dalam 1 baris tabel, tanpa perlu bolak-balik cari ID.
+// 
+// - water_report (wr)  : Tabel utama (yang berisi laporan)
+// - reporter (rep)     : Digabungkan (JOIN) supaya kita tahu NAMA si pelapor (bukan cuma ID-nya)
+// - dispenser (d)      : Digabungkan (JOIN) supaya kita tahu KODE dispensernya
+// - lokasi (l)         : Digabungkan (JOIN) supaya kita tahu GEDUNG & LANTAI dispensernya
+//
+// Yang paling rumit: 'assigned_staff'. 
+// Ini adalah "Query di dalam Query" (Sub-query) untuk mencari: "Siapa sih nama staff yang lagi ngerjain tugas ini?"
 $stmt = $pdo->prepare("
     SELECT wr.*, rep.Nama AS nama_pelapor, rep.Nim AS nim_pelapor,
            d.Kode_Dispenser, l.Nama_Gedung, l.Lantai,
@@ -41,10 +65,10 @@ $stmt = $pdo->prepare("
     WHERE $whereClause
     ORDER BY wr.Reported_At DESC
 ");
-$stmt->execute($params);
-$reports = $stmt->fetchAll();
+$stmt->execute($params); // Menjalankan query SQL beserta filternya
+$reports = $stmt->fetchAll(); // Simpan semua hasilnya di array '$reports'
 
-// Get distinct buildings for filter
+// Mengambil daftar nama gedung unik untuk pilihan di kotak Filter
 $buildings = $pdo->query("SELECT DISTINCT Nama_Gedung FROM lokasi ORDER BY Nama_Gedung")->fetchAll();
 
 include __DIR__ . '/../_partials/layout_head.php';

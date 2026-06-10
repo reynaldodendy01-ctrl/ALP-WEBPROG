@@ -1,6 +1,9 @@
 <?php
 // api/get_landing_data.php
-header('Content-Type: application/json');
+// File ini berfungsi sebagai "API" (Application Programming Interface).
+// API adalah jembatan penghubung antara halaman depan pengguna (HTML/JS) dengan database (MySQL).
+// Di sini kita mengambil data dispenser dan statistik untuk ditampilkan di halaman utama.
+header('Content-Type: application/json'); // Mengatur format balasan berupa JSON (agar mudah dibaca Javascript)
 header('Access-Control-Allow-Origin: *');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -10,7 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 try {
     require_once __DIR__ . '/../db.php';
 
+    // ─── Mengambil Statistik Dasar ─────────────────────────────────────────
+    // COUNT(*) berguna untuk menghitung ada berapa total baris data (dispenser).
     $total_dispensers = $pdo->query("SELECT COUNT(*) FROM dispenser")->fetchColumn();
+    // COUNT(DISTINCT Nama_Gedung) menghitung jumlah gedung tanpa ada yang dobel.
     $total_gedung = $pdo->query("SELECT COUNT(DISTINCT Nama_Gedung) FROM lokasi")->fetchColumn();
 
     // Dispensers for form dropdown (only available ones)

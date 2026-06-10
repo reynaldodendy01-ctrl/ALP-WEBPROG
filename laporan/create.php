@@ -1,11 +1,23 @@
 <?php
+// =========================================================================
+// FILE: laporan/create.php
+// FUNGSI: Menampilkan Form Buat Laporan Baru & Menyimpan Datanya (CREATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
 $pageTitle  = 'Buat Laporan';
 $activeMenu = 'laporan';
 define('ROOT', dirname(__DIR__));
 
+// 3. MENGAMBIL DATA UNTUK MENU PILIHAN (DROPDOWN)
+// Supaya admin tidak perlu mengetik nama pelapor/dispenser satu-satu secara manual.
 $reportersList = $pdo->query("SELECT Reporter_ID, Nama, Nim FROM reporter ORDER BY Nama")->fetchAll();
+
+// Disini kita JOIN tabel 'dispenser' dengan 'lokasi' supaya di menu pilihan
+// kita bisa menampilkan nama gedungnya (bukan cuma kodenya doang yang bikin bingung).
 $dispensersList = $pdo->query("
     SELECT d.Dispenser_ID, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai 
     FROM dispenser d 
@@ -16,11 +28,13 @@ $dispensersList = $pdo->query("
 $errors = [];
 $old    = [];
 
-// Support passing dispenser_id via GET
+// 4. MENANGKAP ID DISPENSER DARI URL (Fitur Pintasan)
+// Jika di URL ada 'create.php?dispenser_id=5', maka langsung pilih dispenser no 5 di form.
 if (isset($_GET['dispenser_id'])) {
     $old['dispenser_id'] = intval($_GET['dispenser_id']);
 }
 
+// 5. MENANGKAP DATA SAAT FORM DIKIRIM (TOMBOL SUBMIT)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
 
@@ -30,13 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status           = $_POST['status'] ?? 'Pending';
     $deskripsi_report = trim($_POST['deskripsi_report'] ?? '');
 
-    // Validation
+    // --- PROSES VALIDASI ---
     if (!$reporter_id) {
         $errors[] = 'Pilih pelapor.';
     }
     if (!$dispenser_id) {
         $errors[] = 'Pilih dispenser.';
     }
+    // Mencegah hacker ngarang nama kategori atau status sendiri
     if (!in_array($kategori, ['Galon Kosong', 'Dispenser Rusak / Bocor'])) {
         $errors[] = 'Kategori masalah tidak valid.';
     }
@@ -44,38 +59,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Status tidak valid.';
     }
 
-    $foto_url = null;
+    // --- 6. PROSES UPLOAD FOTO (BAGIAN TERSULIT) ---
+    $foto_url = null; // Awalnya anggap tidak ada foto
+    
+    // Cek: Apakah user mengupload foto? Dan apakah tidak ada error saat upload?
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-        $fileTmpPath = $_FILES['foto']['tmp_name'];
-        $fileName = $_FILES['foto']['name'];
-        $fileSize = $_FILES['foto']['size'];
-        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        $fileTmpPath = $_FILES['foto']['tmp_name']; // Lokasi foto sementara di server
+        $fileName = $_FILES['foto']['name']; // Nama asli foto ('gambar.jpg')
+        $fileSize = $_FILES['foto']['size']; // Ukuran foto
+        $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION)); // Mengambil tipe file ('jpg')
 
+        // Validasi tipe file (Hanya boleh gambar)
         $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
         if (!in_array($fileExtension, $allowedExtensions)) {
             $errors[] = "Ekstensi file tidak valid. Diperbolehkan: JPG, JPEG, PNG, GIF.";
-        } elseif ($fileSize > 5 * 1024 * 1024) {
+        } 
+        // Validasi ukuran (Maksimal 5 MB)
+        elseif ($fileSize > 5 * 1024 * 1024) {
             $errors[] = "Ukuran file terlalu besar. Maksimum 5MB.";
         } else {
+            // Tentukan folder tempat foto akan disimpan permanen ('/uploads/')
             $uploadFileDir = ROOT . '/uploads/';
             if (!is_dir($uploadFileDir)) {
-                mkdir($uploadFileDir, 0777, true);
+                mkdir($uploadFileDir, 0777, true); // Jika folder belum ada, buat foldernya!
             }
+            
+            // Mengubah nama foto menjadi nama unik/acak. 
+            // Kenapa? Supaya kalau ada 2 orang upload foto bernama 'gambar.jpg', file lama tidak tertimpa.
             $newFileName = md5(uniqid(time(), true)) . '.' . $fileExtension;
             $dest_path = $uploadFileDir . $newFileName;
 
+            // Pindahkan file dari tempat sementara ke folder 'uploads/'
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                $foto_url = 'uploads/' . $newFileName;
+                $foto_url = 'uploads/' . $newFileName; // Simpan jalur file ini untuk dimasukkan ke MySQL
             } else {
                 $errors[] = "Gagal mengunggah foto. Silakan coba lagi.";
             }
         }
     } elseif (isset($_FILES['foto']) && $_FILES['foto']['error'] !== UPLOAD_ERR_NO_FILE) {
+        // Jika ada error upload selain "User tidak pilih file"
         $errors[] = "Terjadi kesalahan pada file upload: Kode " . $_FILES['foto']['error'];
     }
 
+    // Jika semua lolos ($errors kosong), simpan!
     if (empty($errors)) {
         try {
+            // ─── 7. CRUD (CREATE) - MENYIMPAN LAPORAN BARU KE MYSQL ───────────────────
+            // Kita menyiapkan perintah INSERT INTO ke tabel 'water_report'.
+            // Di sini kita menyimpan data foto ($foto_url) dan mengatur 'Reported_At' pakai fungsi NOW() dari MySQL.
             $stmt = $pdo->prepare("
                 INSERT INTO water_report (Reporter_ID, Dispenser_ID, Kategori, Status, Deskripsi_Report, Foto_url, Reported_At)
                 VALUES (:reporter_id, :dispenser_id, :kategori, :status, :deskripsi_report, :foto_url, NOW())
@@ -86,11 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':kategori'         => $kategori,
                 ':status'           => $status,
                 ':deskripsi_report' => $deskripsi_report,
-                ':foto_url'         => $foto_url,
+                ':foto_url'         => $foto_url, // Bisa berisi link gambar, bisa juga NULL kalau tidak upload
             ]);
 
             set_flash('success', 'Laporan kendala berhasil dibuat!');
-            header('Location: index.php');
+            header('Location: index.php'); // Lemparkan ke daftar laporan
             exit;
         } catch (PDOException $e) {
             $errors[] = 'Gagal menyimpan laporan: ' . $e->getMessage();

@@ -1,10 +1,23 @@
 <?php
+// =========================================================================
+// FILE: staff/index.php
+// FUNGSI: Menampilkan Halaman Daftar Staff Maintenance (READ)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
+// 2. MENGATUR VARIABEL TAMPILAN UNTUK LAYOUT
 $pageTitle  = 'Staff';
-$activeMenu = 'staff';
+$activeMenu = 'staff'; // Supaya tombol "Staff" di sidebar kiri berwarna biru terang
 define('ROOT', dirname(__DIR__));
 
+// 3. ─── CRUD (READ) - MENGAMBIL DATA STAFF DARI MYSQL ───────────────────
+// Mengambil semua data dari tabel 'maintenance_staff' (kita beri nama panggilan 's').
+// Kita juga menempelkan tabel penugasan ('staff_dispenser_assignment') menggunakan 'LEFT JOIN' (panggilan 'a').
+// Tujuan JOIN ini adalah agar kita bisa MENGHITUNG (COUNT & SUM) beban kerja tiap staff:
+// - total_assignments: Menghitung semua tugas yang pernah dia terima.
+// - active_assignments: Menghitung khusus tugas yang masih 'Pending' atau 'On Progress'.
 $staff = $pdo->query("
     SELECT s.*, 
            COUNT(a.Assignment_ID) AS total_assignments,
@@ -13,7 +26,7 @@ $staff = $pdo->query("
     LEFT JOIN staff_dispenser_assignment a ON a.Staff_ID = s.Staff_ID
     GROUP BY s.Staff_ID
     ORDER BY s.Nama
-")->fetchAll();
+")->fetchAll(); // Ubah hasil dari MySQL ke dalam format list (Array) PHP.
 
 include __DIR__ . '/../_partials/layout_head.php';
 ?>

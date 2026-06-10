@@ -1,10 +1,19 @@
 <?php
+// =========================================================================
+// FILE: refill/index.php
+// FUNGSI: Menampilkan Riwayat Pemasangan/Penggantian Galon (READ)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Refill Logs';
 $activeMenu = 'refill';
 define('ROOT', dirname(__DIR__));
 
+// 2. ─── CRUD (READ) - MENGAMBIL DATA RIWAYAT REFILL ───────────────────
+// Kita mengambil data dari tabel 'refill_logs', lalu digabung dengan tabel
+// penugasan (assignment), staff, dispenser, dan lokasi supaya informasinya lengkap.
 $stmt = $pdo->prepare("
     SELECT rl.*, ms.Nama AS nama_staff, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai
     FROM refill_logs rl

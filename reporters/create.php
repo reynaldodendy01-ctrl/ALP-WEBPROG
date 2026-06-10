@@ -1,4 +1,10 @@
 <?php
+// =========================================================================
+// FILE: reporters/create.php
+// FUNGSI: Menambahkan Akun Pelapor Baru (Mahasiswa/Dosen) (CREATE)
+// =========================================================================
+
+// 1. MEMANGGIL KONEKSI DATABASE
 require_once __DIR__ . '/../db.php';
 
 $pageTitle  = 'Tambah Pelapor';
@@ -8,12 +14,14 @@ define('ROOT', dirname(__DIR__));
 $errors = [];
 $old    = [];
 
+// 2. KETIKA TOMBOL "SIMPAN" DIKLIK (METHOD POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $old = $_POST;
+    $old = $_POST; // Amankan ketikan user (biar gak hilang kalau error)
 
     $nama = trim($_POST['nama'] ?? '');
     $nim  = trim($_POST['nim'] ?? '');
 
+    // --- PROSES VALIDASI FORM ---
     if (!$nama) {
         $errors[] = 'Nama pelapor wajib diisi.';
     }
@@ -23,12 +31,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
-            // Check if NIM already exists
+            // 3. CEK NIM KEMBAR (DUPLIKASI)
+            // Sebelum kita tambahkan, kita tanya MySQL: "Ada gak orang pake NIM ini?"
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM reporter WHERE Nim = :nim");
             $stmt->execute([':nim' => $nim]);
             if ($stmt->fetchColumn() > 0) {
+                // Kalau > 0 berarti sudah ada, tolak!
                 $errors[] = 'NIM pelapor sudah terdaftar.';
             } else {
+                // 4. CRUD (CREATE) - MASUKKAN DATA BARU KE MYSQL
                 $stmt = $pdo->prepare("
                     INSERT INTO reporter (Nama, Nim)
                     VALUES (:nama, :nim)
@@ -38,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':nim'  => $nim,
                 ]);
 
+                // Berhasil? Lempar kembali ke halaman depan
                 set_flash('success', "Pelapor \"$nama\" berhasil ditambahkan!");
                 header('Location: index.php');
                 exit;
