@@ -290,11 +290,11 @@
 
             <div class="flex items-center gap-6">
 
-                <a href="login.html"  class="hidden md:block text-sm text-on-surface-variant hover:text-primary transition-colors font-medium">
+                <a href="login.php"  class="hidden md:block text-sm text-on-surface-variant hover:text-primary transition-colors font-medium">
                     Dashboard Admin
                 </a>
 
-                <a href="login.html" 
+                <a href="login.php" 
                     class="bg-primary text-white text-sm font-semibold px-6 py-3 rounded-full hover:shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-center">
                     Masuk Platform
                 </a>
@@ -498,7 +498,7 @@
                 </div>
 
                 <!-- D -->
-                <div onclick="location.href='login.html'"
+                <div onclick="location.href='login.php'"
                     class="bento-d bg-white rounded-3xl ambient-shadow border border-outline-variant/30 hover:border-primary/20 hover:-translate-y-1 transition-all group p-10 cursor-pointer">
 
                     <div
@@ -532,9 +532,9 @@
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
                 <div>
                     <h2 class="text-3xl lg:text-4xl font-black tracking-tight leading-tight">
-                        Galon Tersedia Saat Ini
+                        Status Semua Galon
                     </h2>
-                    <p class="text-on-surface-variant text-sm mt-1">Dispenser yang tidak memiliki laporan aktif dianggap tersedia.</p>
+                    <p class="text-on-surface-variant text-sm mt-1">Status ketersediaan air di seluruh dispenser saat ini.</p>
                 </div>
                 <div class="flex gap-3 flex-wrap">
                     <select id="filter-gedung" class="text-sm border border-outline-variant rounded-xl px-4 py-2.5 outline-none focus:border-primary bg-white cursor-pointer">
@@ -678,7 +678,7 @@
                     <ul class="flex flex-col gap-4">
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="login.html">
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="login.php">
                                 Dashboard Admin
                             </a>
                         </li>
@@ -714,7 +714,7 @@
                         </li>
 
                         <li>
-                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="login.html">
+                            <a class="text-on-surface-variant hover:text-primary transition-colors" href="login.php">
                                 Login Staff / Admin
                             </a>
                         </li>
@@ -815,7 +815,7 @@
         setTimeout(() => box.style.display = 'none', 4000);
     }
     </script>
-    <script src="js/landing.js"></script>
+    <script src="js/landing.js?v=2"></script>
 </body>
 
 </html>

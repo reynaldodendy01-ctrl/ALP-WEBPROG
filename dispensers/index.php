@@ -111,10 +111,9 @@ include __DIR__ . '/../_partials/layout_head.php';
             <tr>
                 <td style="color:#9ca3af;font-size:.8rem;"><?= $i + 1 ?></td>
                 <td>
-                    <a href="detail.php?id=<?= $d['Dispenser_ID'] ?>"
-                       style="font-weight:700;color:#0058bc;text-decoration:none;">
+                    <div style="font-weight:700;color:#0058bc;">
                         <?= h($d['Kode_Dispenser']) ?>
-                    </a>
+                    </div>
                 </td>
                 <td>
                     <div style="font-weight:600;color:#0b1f3a;"><?= h($d['Nama_Gedung']) ?></div>
@@ -133,9 +132,6 @@ include __DIR__ . '/../_partials/layout_head.php';
                 </td>
                 <td>
                     <div style="display:flex;gap:6px;align-items:center;">
-                        <a href="detail.php?id=<?= $d['Dispenser_ID'] ?>" class="btn-edit" title="Detail & Riwayat">
-                            <span class="mat-icon" style="font-size:15px">visibility</span>
-                        </a>
                         <a href="edit.php?id=<?= $d['Dispenser_ID'] ?>" class="btn-edit" title="Edit">
                             <span class="mat-icon" style="font-size:15px">edit</span>
                         </a>

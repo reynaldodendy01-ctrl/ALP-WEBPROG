@@ -1,3 +1,10 @@
+<?php
+session_start();
+if (isset($_SESSION['staff_id'])) {
+    header("Location: dashboard/index.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>

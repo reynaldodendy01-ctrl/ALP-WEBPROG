@@ -13,11 +13,14 @@ try {
     $total_dispensers = $pdo->query("SELECT COUNT(*) FROM dispenser")->fetchColumn();
     $total_gedung = $pdo->query("SELECT COUNT(DISTINCT Nama_Gedung) FROM lokasi")->fetchColumn();
 
-    // Dispensers for form dropdown
+    // Dispensers for form dropdown (only available ones)
     $dispensersList = $pdo->query("
         SELECT d.Dispenser_ID, d.Kode_Dispenser, l.Nama_Gedung, l.Lantai
         FROM dispenser d
         JOIN lokasi l ON d.Lokasi_ID = l.Lokasi_ID
+        WHERE d.Dispenser_ID NOT IN (
+            SELECT Dispenser_ID FROM water_report WHERE Status IN ('Pending', 'Diproses')
+        )
         ORDER BY l.Nama_Gedung, l.Lantai, d.Kode_Dispenser
     ")->fetchAll();
 

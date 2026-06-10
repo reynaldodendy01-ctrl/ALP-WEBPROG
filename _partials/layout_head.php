@@ -21,7 +21,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 // Enforce staff session authentication
 if (!isset($_SESSION['staff_logged_in']) || $_SESSION['staff_logged_in'] !== true) {
-    header('Location: ' . $base . 'login.html');
+    header('Location: ' . $base . 'login.php');
     exit;
 }
 

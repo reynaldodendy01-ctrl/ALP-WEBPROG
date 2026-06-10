@@ -30,30 +30,38 @@ fetch('api/get_landing_data.php')
       '<tr><td colspan="3" style="text-align:center;padding:32px;color:#9ca3af;">Gagal memuat data. Coba refresh halaman.</td></tr>';
   });
 
-// === Dispenser Status Table (only shows Tersedia) ===
+// === Dispenser Status Table ===
 function renderDispenserTable(dispensers) {
   var tbody = document.getElementById('report-table-body');
   var filterGedung = document.getElementById('filter-gedung').value;
 
-  // Only show Tersedia dispensers
   var filtered = dispensers.filter(function(d) {
-    if (d.status !== 'Tersedia') return false;
     if (filterGedung && d.Nama_Gedung !== filterGedung) return false;
     return true;
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:40px;color:#9ca3af;">Semua dispenser sedang dalam proses penanganan.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:40px;color:#9ca3af;">Tidak ada data dispenser.</td></tr>';
     return;
   }
 
   tbody.innerHTML = '';
   filtered.forEach(function(d) {
+    var statusClass = 'badge-tersedia';
+    var statusText = 'Tersedia';
+    if (d.status === 'Pending') {
+      statusClass = 'badge-pending';
+      statusText = 'Dilaporkan';
+    } else if (d.status === 'Diproses') {
+      statusClass = 'badge-diproses';
+      statusText = 'Diproses';
+    }
+
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td style="font-weight:700;color:#0058bc;">' + escHtml(d.Kode_Dispenser) + '</td>' +
       '<td>' + escHtml(d.Nama_Gedung) + ' Lt.' + d.Lantai + '</td>' +
-      '<td><span class="badge-status badge-tersedia">Tersedia</span></td>';
+      '<td><span class="badge-status ' + statusClass + '">' + statusText + '</span></td>';
     tbody.appendChild(tr);
   });
 }

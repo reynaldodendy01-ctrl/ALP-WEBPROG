@@ -12,7 +12,7 @@ $email    = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 
 if (empty($email) || empty($password)) {
-    header('Location: login.html?error=' . urlencode('Email dan password wajib diisi.'));
+    header('Location: login.php?error=' . urlencode('Email dan password wajib diisi.'));
     exit;
 }
 
@@ -32,10 +32,10 @@ try {
         header('Location: dashboard/index.php');
         exit;
     } else {
-        header('Location: login.html?error=' . urlencode('Email atau password salah.'));
+        header('Location: login.php?error=' . urlencode('Email atau password salah.'));
         exit;
     }
 } catch (PDOException $e) {
-    header('Location: login.html?error=' . urlencode('Terjadi kesalahan sistem.'));
+    header('Location: login.php?error=' . urlencode('Terjadi kesalahan sistem.'));
     exit;
 }
